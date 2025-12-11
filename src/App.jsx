@@ -375,4 +375,4 @@ const SmartMirror = () => {
   );
 };
 
-export default SmartMirror;
+export default SmartMirror; 

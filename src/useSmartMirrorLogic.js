@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+// 👇 IMPORTAMOS EL NUEVO MÓDULO DE VOZ QUE CREASTE
+import useJarvisVoice from './useJarvisVoice';
 
 // ==========================================
 // 🛠️ REGISTRO DE WIDGETS
@@ -7,11 +9,13 @@ import { io } from 'socket.io-client';
 export const WIDGET_REGISTRY = {
   time: { id: 'time', name: 'Reloj Maestro', icon: '🕐', category: 'SISTEMA', priority: 1, locked: true },
   weather: { id: 'weather', name: 'Atmósfera', icon: '☀️', category: 'AMBIENTE', priority: 2 },
+  // 👇 WIDGET JARVIS
+  search: { id: 'search', name: 'Jarvis AI', icon: '🎙️', category: 'INTELIGENCIA', priority: 0, visible: false },
   status: { id: 'status', name: 'Sistemas', icon: '📶', category: 'SISTEMA', priority: 3 },
   news: { id: 'news', name: 'Feed Global', icon: '📰', category: 'INFO', priority: 4 },
   music: { id: 'music', name: 'Audio', icon: '🎵', category: 'MEDIA', priority: 5, isDynamic: true },
   notifications: { id: 'notifications', name: 'Centro de Mensajes', icon: '💬', category: 'COMUNICACIÓN', priority: 6, isDynamic: true },
-  // 👇 CALENDARIO BLOQUEADO (Actúa como botón, no se puede arrastrar)
+  // 👇 CALENDARIO BLOQUEADO (Botón)
   calendar: { id: 'calendar', name: 'Agenda Diaria', icon: '📅', category: 'PRODUCTIVIDAD', priority: 7, locked: true },
   mail: { id: 'mail', name: 'Buzón Prioritario', icon: '✉️', category: 'PRODUCTIVIDAD', priority: 8 },
 };
@@ -23,10 +27,11 @@ export const PRESETS = {
     weather: { x: 20, y: 20, visible: true, scale: 1 },
     status: { x: 90, y: 5, visible: true, scale: 0.9 },
     news: { x: 50, y: 85, visible: true, scale: 1 },
-    music: { x: 80, y: 80, visible: false, scale: 1 },
+    music: { x: 80, y: 80, visible: true, scale: 1 },
     notifications: { x: 85, y: 50, visible: true, scale: 1, items: [] },
     calendar: { x: 20, y: 50, visible: true, scale: 1, events: [] },
-    mail: { x: 20, y: 80, visible: true, scale: 1, emails: [] }
+    mail: { x: 20, y: 80, visible: true, scale: 1, emails: [] },
+    search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
   },
   morning: { 
     time: { x: 50, y: 15, visible: true, scale: 1 },
@@ -36,7 +41,8 @@ export const PRESETS = {
     music: { x: 10, y: 90, visible: false, scale: 1 },
     notifications: { x: 90, y: 80, visible: true, scale: 1, items: [] },
     calendar: { x: 25, y: 50, visible: true, scale: 1.2, events: [] },
-    mail: { x: 75, y: 50, visible: true, scale: 1.1, emails: [] }
+    mail: { x: 75, y: 50, visible: true, scale: 1.1, emails: [] },
+    search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
   },
   zen: { 
     time: { x: 50, y: 50, visible: true, scale: 1.2 },
@@ -46,22 +52,58 @@ export const PRESETS = {
     music: { x: 80, y: 80, visible: true, scale: 1 },
     notifications: { x: 90, y: 50, visible: false, scale: 1, items: [] },
     calendar: { x: 50, y: 80, visible: true, scale: 1, events: [] },
-    mail: { x: 20, y: 80, visible: false, scale: 1, emails: [] }
+    mail: { x: 20, y: 80, visible: false, scale: 1, emails: [] },
+    search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
   }
 };
 
 const DEFAULT_CONFIG = { dayStart: 6, nightStart: 19, theme: 'stark', opacity: 1, scale: 1 };
 
+// 🔊 SISTEMA DE SONIDO (Global para que lo usen todos)
+const playTechSound = (type) => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+    
+    if (type === 'complete') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); gain.gain.setValueAtTime(0.1, now);
+      osc.frequency.setValueAtTime(1046.50, now + 0.2); gain.gain.setValueAtTime(0.1, now + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      osc.start(now); osc.stop(now + 0.8);
+    } 
+    else if (type === 'notification') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(800, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    }
+    else if (type === 'swipe') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    }
+  } catch (e) { console.error("Audio Error", e); }
+};
+
 const useSmartMirrorLogic = () => {
   // ---------------------------------------------------------
-  // 1. ESTADOS (LA MEMORIA)
+  // 1. ESTADOS
   // ---------------------------------------------------------
   const [time, setTime] = useState(new Date());
   const [weather] = useState({ temp: 24, condition: 'Cielo Despejado' });
   const [cameraActive, setCameraActive] = useState(false);
   const [isDayTime, setIsDayTime] = useState(true);
-
-  // VISTA ACTUAL
   const [viewMode, setViewMode] = useState('dashboard');
 
   // IA
@@ -70,7 +112,7 @@ const useSmartMirrorLogic = () => {
   const [handDetected, setHandDetected] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
 
-  // UI & Interacción
+  // UI
   const [focusMode, setFocusMode] = useState(false);
   const [focusTime, setFocusTime] = useState(1500); 
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -100,8 +142,17 @@ const useSmartMirrorLogic = () => {
     return DEFAULT_CONFIG;
   });
 
+  // 🎤 INICIALIZAR JARVIS (Aquí conectamos el hook de voz)
+  useJarvisVoice({
+      setWidgets,
+      setIsStandby,
+      setBootPhase,
+      playTechSound,
+      searchWidgetDefault: WIDGET_REGISTRY.search
+  });
+
   // ---------------------------------------------------------
-  // 2. REFERENCIAS (PARA EL MOTOR DE FÍSICA Y GESTOS)
+  // 2. REFS
   // ---------------------------------------------------------
   const lastActivityRef = useRef(Date.now());
   const frameCountRef = useRef(0);
@@ -110,7 +161,7 @@ const useSmartMirrorLogic = () => {
   const focusModeRef = useRef(false);
   const viewModeRef = useRef('dashboard'); 
 
-  // Refs para Scroll y Gestos Avanzados
+  // Refs de Scroll y Gestos
   const agendaScrollRef = useRef(null); 
   const grabStartPosRef = useRef(null); 
   const isDraggingScrollRef = useRef(false);
@@ -119,65 +170,46 @@ const useSmartMirrorLogic = () => {
 
   const videoRef = useRef(null);
   const grabbedWidgetRef = useRef(null);
-  const widgetsRef = useRef(widgets); // Referencia viva a widgets
-  
+  const widgetsRef = useRef(widgets); 
   const handsRef = useRef(null);
   const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
 
-  // ---------------------------------------------------------
-  // 3. SINCRONIZACIÓN
-  // ---------------------------------------------------------
+  // 3. SINCRONIZACIÓN DE REFS
   useEffect(() => { widgetsRef.current = widgets; }, [widgets]);
   useEffect(() => { isStandbyRef.current = isStandby; }, [isStandby]);
   useEffect(() => { focusModeRef.current = focusMode; }, [focusMode]);
   useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
 
   // ---------------------------------------------------------
-  // 🔌 CONEXIÓN WEBSOCKET (PUENTE)
+  // 🔌 CONEXIÓN WEBSOCKET
   // ---------------------------------------------------------
   useEffect(() => {
     const newSocket = io('http://localhost:3001');
-
-    newSocket.on('connect', () => {
-      console.log("🟢 Conectado al Puente Stark");
-      newSocket.emit('identify', 'mirror');
-    });
-
-    // 1. Notificaciones
+    newSocket.on('connect', () => { console.log("🟢 Conectado"); newSocket.emit('identify', 'mirror'); });
+    
     newSocket.on('new-notification', (notif) => {
-      playTechSound('notification'); 
-      registerActivity(); 
+      playTechSound('notification'); registerActivity(); 
       setWidgets(prev => {
         const currentNotifs = prev.notifications?.items || [];
-        const newItems = [notif, ...currentNotifs].slice(0, 5); 
         const baseWidget = prev.notifications || { ...WIDGET_REGISTRY.notifications, x: 85, y: 50, scale: 1 };
-        return { ...prev, notifications: { ...baseWidget, visible: true, items: newItems } };
+        return { ...prev, notifications: { ...baseWidget, visible: true, items: [notif, ...currentNotifs].slice(0, 5) } };
       });
     });
 
-    // 2. Calendario
     newSocket.on('update-calendar', (realEvents) => {
-      console.log("📅 Agenda recibida");
-      playTechSound('notification');
-      setWidgets(prev => {
-        const baseCalendar = prev.calendar || { ...WIDGET_REGISTRY.calendar, x: 20, y: 50, scale: 1 };
-        return {
-            ...prev,
-            calendar: {
-                ...baseCalendar,
-                visible: true, 
-                events: realEvents
-            }
-        };
-      });
+      console.log("📅 Agenda recibida"); playTechSound('notification');
+      setWidgets(prev => ({ ...prev, calendar: { ...(prev.calendar || WIDGET_REGISTRY.calendar), visible: true, events: realEvents } }));
     });
 
-    // 3. Correo
     newSocket.on('update-mail', (realEmails) => {
+        setWidgets(prev => ({ ...prev, mail: { ...(prev.mail || WIDGET_REGISTRY.mail), visible: true, emails: realEmails } }));
+    });
+
+    newSocket.on('update-music', (track) => {
         setWidgets(prev => ({
-          ...prev,
-          mail: { ...(prev.mail || WIDGET_REGISTRY.mail), visible: true, emails: realEmails }
+            ...prev,
+            music: { ...(prev.music || WIDGET_REGISTRY.music), visible: true, track: track }
         }));
     });
 
@@ -186,182 +218,46 @@ const useSmartMirrorLogic = () => {
   }, []);
 
   // ---------------------------------------------------------
-  // 🔊 SISTEMA DE SONIDO
+  // 💾 UTILS
   // ---------------------------------------------------------
-  const playTechSound = (type) => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const now = ctx.currentTime;
-      
-      if (type === 'complete') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, now); gain.gain.setValueAtTime(0.1, now);
-        osc.frequency.setValueAtTime(1046.50, now + 0.2); gain.gain.setValueAtTime(0.1, now + 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-        osc.start(now); osc.stop(now + 0.8);
-      } 
-      else if (type === 'notification') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(800, now);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.start(now); osc.stop(now + 0.3);
-      }
-      else if (type === 'swipe') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.start(now); osc.stop(now + 0.3);
-      }
-    } catch (e) {}
-  };
-
-  // ---------------------------------------------------------
-  // 💾 PERSISTENCIA & UTILS
-  // ---------------------------------------------------------
-  const applyPreset = (presetName) => {
-    const preset = PRESETS[presetName] || PRESETS.default;
-    setWidgets(prev => {
-        const newWidgets = { ...prev };
-        Object.keys(preset).forEach(key => {
-            if (newWidgets[key]) {
-                newWidgets[key] = { ...newWidgets[key], ...preset[key], isDragging: false };
-            }
-        });
-        return newWidgets;
-    });
-  };
-
-  useEffect(() => {
-    if (!isGrabbing && bootPhase === 'active') {
-      const cleanWidgets = {};
-      Object.keys(widgets).forEach(key => {
-        cleanWidgets[key] = { ...widgets[key], isDragging: false };
-      });
-      localStorage.setItem('jarvis_mirror_config_v1', JSON.stringify(cleanWidgets));
-    }
-  }, [widgets, isGrabbing, bootPhase]);
-
-  useEffect(() => {
-    localStorage.setItem('jarvis_mirror_settings_v1', JSON.stringify(config));
-  }, [config]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setTime(now);
-      const hour = now.getHours();
-      setIsDayTime(hour >= config.dayStart && hour < config.nightStart);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [config]);
-
-  // Pomodoro
-  useEffect(() => {
-    let timer = null;
-    if (focusMode && !sessionComplete && focusTime > 0) {
-      timer = setInterval(() => setFocusTime(prev => prev - 1), 1000);
-    } else if (!focusMode) {
-      setFocusTime(1500); setSessionComplete(false);
-    } else if (focusTime === 0 && !sessionComplete) {
-      setSessionComplete(true); playTechSound('complete');
-      setTimeout(() => { setFocusMode(false); setSessionComplete(false); setFocusTime(1500); }, 5000);
-    }
-    return () => clearInterval(timer);
-  }, [focusMode, focusTime, sessionComplete]);
-
-  // Motor de Física (Evitar colisiones)
-  useEffect(() => {
-    const physicsLoop = setInterval(() => {
-      if (isGrabbing || showSettings || isStandby || focusMode) return;
-      let hasChanges = false;
-      const currentWidgets = { ...widgetsRef.current };
-      const keys = Object.keys(currentWidgets);
-      const repulsionDist = 18;
-
-      keys.forEach((keyA, i) => {
-        const wA = currentWidgets[keyA];
-        if (keyA === 'time' || !wA.visible || wA.isDragging) return;
-
-        let newX = wA.x, newY = wA.y;
-        // Bordes
-        if (newX < 5) newX += (5 - newX) * 0.1; if (newX > 95) newX += (95 - newX) * 0.1;
-        if (newY < 5) newY += (5 - newY) * 0.1; if (newY > 95) newY += (95 - newY) * 0.1;
-
-        // Colisiones con otros widgets
-        keys.forEach((keyB, j) => {
-          if (i === j) return;
-          const wB = currentWidgets[keyB];
-          if (!wB.visible) return;
-          const dx = wA.x - wB.x, dy = wA.y - wB.y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < repulsionDist && dist > 0) {
-            const force = (repulsionDist - dist) * 0.05;
-            newX += (dx / dist) * force; newY += (dy / dist) * force;
-          }
-        });
-
-        if (Math.abs(newX - wA.x) > 0.1 || Math.abs(newY - wA.y) > 0.1) {
-          currentWidgets[keyA] = { ...wA, x: newX, y: newY };
-          hasChanges = true;
-        }
-      });
-      if (hasChanges) setWidgets(currentWidgets);
-    }, 50);
-    return () => clearInterval(physicsLoop);
-  }, [isGrabbing, showSettings, isStandby, focusMode]);
-
-  const registerActivity = () => {
-    lastActivityRef.current = Date.now();
-    if (isStandbyRef.current) {
-      setIsStandby(false); setBootPhase('booting'); setTimeout(() => setBootPhase('active'), 2000);
-    }
-  };
-
-  useEffect(() => {
-    const sleepCheck = setInterval(() => {
-      if (!focusMode && !isStandbyRef.current && Date.now() - lastActivityRef.current > 15000) {
-        setIsStandby(true); setBootPhase('standby');
-      }
-    }, 1000);
-    return () => clearInterval(sleepCheck);
-  }, [focusMode]);
+  const applyPreset = (presetName) => { const preset = PRESETS[presetName] || PRESETS.default; setWidgets(prev => { const newWidgets = { ...prev }; Object.keys(preset).forEach(key => { if (newWidgets[key]) newWidgets[key] = { ...newWidgets[key], ...preset[key], isDragging: false }; }); return newWidgets; }); };
+  
+  useEffect(() => { if (!isGrabbing && bootPhase === 'active') { const clean = {}; Object.keys(widgets).forEach(k => clean[k] = { ...widgets[k], isDragging: false }); localStorage.setItem('jarvis_mirror_config_v1', JSON.stringify(clean)); } }, [widgets, isGrabbing]);
+  useEffect(() => { localStorage.setItem('jarvis_mirror_settings_v1', JSON.stringify(config)); }, [config]);
+  useEffect(() => { const t = setInterval(() => { const n = new Date(); setTime(n); setIsDayTime(n.getHours() >= config.dayStart && n.getHours() < config.nightStart); }, 1000); return () => clearInterval(t); }, [config]);
+  
+  useEffect(() => { let timer = null; if (focusMode && !sessionComplete && focusTime > 0) { timer = setInterval(() => setFocusTime(prev => prev - 1), 1000); } else if (!focusMode) { setFocusTime(1500); setSessionComplete(false); } else if (focusTime === 0 && !sessionComplete) { setSessionComplete(true); playTechSound('complete'); setTimeout(() => { setFocusMode(false); setSessionComplete(false); setFocusTime(1500); }, 5000); } return () => clearInterval(timer); }, [focusMode, focusTime, sessionComplete]);
+  
+  useEffect(() => { const p = setInterval(() => { if (isGrabbing || showSettings || isStandby || focusMode) return; let ch = false; const cw = { ...widgetsRef.current }; Object.keys(cw).forEach((kA, i) => { const wA = cw[kA]; if (kA === 'time' || !wA.visible || wA.isDragging) return; let nx = wA.x, ny = wA.y; if (nx < 5) nx += (5 - nx) * 0.1; if (nx > 95) nx += (95 - nx) * 0.1; if (ny < 5) ny += (5 - ny) * 0.1; if (ny > 95) ny += (95 - ny) * 0.1; Object.keys(cw).forEach((kB, j) => { if (i === j) return; const wB = cw[kB]; if (!wB.visible) return; const dx = wA.x - wB.x, dy = wA.y - wB.y, d = Math.sqrt(dx*dx + dy*dy); if (d < 18 && d > 0) { const f = (18 - d) * 0.05; nx += (dx/d)*f; ny += (dy/d)*f; } }); if (Math.abs(nx-wA.x)>0.1 || Math.abs(ny-wA.y)>0.1) { cw[kA] = { ...wA, x: nx, y: ny }; ch = true; } }); if (ch) setWidgets(cw); }, 50); return () => clearInterval(p); }, [isGrabbing, showSettings, isStandby, focusMode]);
+  
+  const registerActivity = () => { lastActivityRef.current = Date.now(); if (isStandbyRef.current) { setIsStandby(false); setBootPhase('booting'); setTimeout(() => setBootPhase('active'), 2000); } };
+  useEffect(() => { const s = setInterval(() => { if (!focusMode && !isStandbyRef.current && Date.now() - lastActivityRef.current > 15000) { setIsStandby(true); setBootPhase('standby'); } }, 1000); return () => clearInterval(s); }, [focusMode]);
 
   // ---------------------------------------------------------
   // 🎮 SISTEMA DE INTERACCIONES (DASHBOARD)
   // ---------------------------------------------------------
   const checkInteractions = (x, y, isGrabbingInput) => {
     if (grabbedWidgetRef.current) { interactionTimerRef.current = 0; setInteractionProgress(0); setInteractionType(null); return; }
-
-    const margin = 10;
-    let activeType = null;
-
+    const margin = 10; let activeType = null;
+    
+    // SOLO EN DASHBOARD
     if (viewModeRef.current === 'dashboard') {
         if (x < margin && y < margin) activeType = 'reload';
         else if (x > (100 - margin) && y > (100 - margin)) activeType = 'standby';
         else {
             if (focusModeRef.current) {
-                 const dx = Math.abs(50 - x), dy = Math.abs(50 - y);
-                 if (dx < 20 && dy < 20 && isGrabbingInput) activeType = 'focus';
+                 const dx = Math.abs(50 - x), dy = Math.abs(50 - y); if (dx < 20 && dy < 20 && isGrabbingInput) activeType = 'focus';
             } else {
-                // 1. Focus (Reloj)
                 const timeWidget = widgetsRef.current.time;
                 if (timeWidget?.visible) {
                     const dx = Math.abs(timeWidget.x - x), dy = Math.abs(timeWidget.y - y);
                     if (dx < 15 * (timeWidget.scale || 1) && dy < 15 * (timeWidget.scale || 1) && isGrabbingInput) activeType = 'focus';
                 }
                 
-                // 2. Agenda (Botón)
+                // AGENDA (Solo si se pellizca)
                 const calWidget = widgetsRef.current.calendar;
                 if (calWidget?.visible) {
                     const dx = Math.abs(calWidget.x - x), dy = Math.abs(calWidget.y - y);
-                    // Hitbox de 15% y requiere PINZA
                     if (dx < 15 && dy < 15 && isGrabbingInput) { 
                         activeType = 'agenda';
                     }
@@ -395,7 +291,7 @@ const useSmartMirrorLogic = () => {
   };
 
   // ---------------------------------------------------------
-  // ✋ LÓGICA DE MANOS (GESTOS, SCROLL Y CLICK)
+  // ✋ LÓGICA DE MANOS: SCROLL Y SALIR ARREGLADOS
   // ---------------------------------------------------------
   const onHandResults = (results) => {
     if (results.multiHandLandmarks?.[0]) {
@@ -413,7 +309,7 @@ const useSmartMirrorLogic = () => {
       
       setIsGrabbing(isGrabbingNow);
 
-      // === LÓGICA POR VISTA ===
+      // === MODO DASHBOARD ===
       if (viewMode === 'dashboard') {
           checkInteractions(screenX, screenY, isGrabbingNow);
           if (grabbedWidgetRef.current) {
@@ -422,43 +318,40 @@ const useSmartMirrorLogic = () => {
             if (isGrabbingNow) checkWidgetGrab(screenX, screenY); else checkWidgetHover(screenX, screenY);
           }
       } 
-      // === MODO AGENDA: SCROLL Y SALIR ===
+      // === MODO AGENDA (SCROLL + SALIR) ===
       else if (viewMode === 'agenda') {
           
-          // 1. INICIO DEL GESTO
+          // 1. INICIO DEL PELLIZCO
           if (isGrabbingNow && !wasGrabbingRef.current) {
               grabStartPosRef.current = { x: screenX, y: screenY }; 
-              lastHandYRef.current = screenY; // Guardar Y inicial para delta
+              lastHandYRef.current = screenY; 
               isDraggingScrollRef.current = false; 
-              interactionTimerRef.current = 0; // Reiniciar contador de salida
+              interactionTimerRef.current = 0; 
           }
 
-          // 2. MANTENIENDO EL GESTO
+          // 2. MANTENIENDO PELLIZCO
           if (isGrabbingNow) {
-              // Calcular distancia total movida desde el inicio del pellizco
+              // Calcular movimiento
               const moveDist = grabStartPosRef.current 
                   ? Math.abs(screenY - grabStartPosRef.current.y) 
                   : 0;
 
-              // UMBRAL DE SCROLL: Si mueve la mano más de 2% de la pantalla, es SCROLL
+              // UMBRAL SCROLL: Si mueve > 2% pantalla
               if (moveDist > 2) {
                   isDraggingScrollRef.current = true; 
-                  interactionTimerRef.current = 0; // Si mueve, reseteamos el contador de salida
+                  interactionTimerRef.current = 0; // Si mueve, no es salida
 
                   if (agendaScrollRef.current && lastHandYRef.current !== null) {
-                      // Sensibilidad del scroll (25 es un buen factor de velocidad)
                       const sensitivity = 25; 
-                      // Delta invertido: Mover mano arriba (Y baja) -> Scroll Baja (scrollTop aumenta)
                       const deltaY = (screenY - lastHandYRef.current) * sensitivity; 
-                      agendaScrollRef.current.scrollTop -= deltaY; 
+                      agendaScrollRef.current.scrollTop -= deltaY; // Mover scroll
                   }
               } 
               // SI NO SE MUEVE -> CONTAR TIEMPO PARA SALIR (HOLD)
               else if (!isDraggingScrollRef.current) {
                   interactionTimerRef.current += 1;
                   
-                  // Si mantiene quieto por ~0.8 segundos (50 frames)
-                  if (interactionTimerRef.current > 50) {
+                  if (interactionTimerRef.current > 50) { // ~2 seg
                       console.log("🔙 HOLD DETECTADO: CERRANDO AGENDA");
                       setViewMode('dashboard');
                       playTechSound('swipe');
@@ -469,7 +362,7 @@ const useSmartMirrorLogic = () => {
       }
       
       wasGrabbingRef.current = isGrabbingNow; 
-      lastHandYRef.current = screenY; // Actualizar para el siguiente frame
+      lastHandYRef.current = screenY; 
 
     } else {
       setHandDetected(false); setHoveredWidget(null);
@@ -481,13 +374,12 @@ const useSmartMirrorLogic = () => {
 
   const onFaceResults = (r) => { if (r.multiFaceLandmarks?.[0]) { registerActivity(); setFaceDetected(true); } else setFaceDetected(false); };
 
-  // --- HELPERS (CON BLOQUEO DE CALENDARIO) ---
+  // --- HELPERS ---
   const checkWidgetGrab = (x, y) => {
     const threshold = 18;
     for (let [name, widget] of Object.entries(widgetsRef.current)) {
-      // Bloqueamos 'time' y 'calendar' para que no se muevan, solo se pulsen
+      // Bloqueamos 'time' y 'calendar'
       if (!widget.visible || name === 'time' || name === 'calendar') continue;
-      
       if (Math.abs(widget.x - x) < threshold && Math.abs(widget.y - y) < threshold) {
         grabbedWidgetRef.current = name;
         setWidgets(prev => ({ ...prev, [name]: { ...prev[name], isDragging: true } }));
@@ -513,9 +405,7 @@ const useSmartMirrorLogic = () => {
   const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
   const handleWidgetMouseDown = (e, widgetName) => {}; 
 
-  // ---------------------------------------------------------
-  // INICIALIZACIÓN (FIX CÁMARA)
-  // ---------------------------------------------------------
+  // INICIALIZACIÓN (CÁMARA)
   useEffect(() => {
     if (cameraRef.current) return;
 
@@ -557,7 +447,7 @@ const useSmartMirrorLogic = () => {
 
     const loadMediaPipe = () => {
         if (window.Hands && window.FaceMesh) { initCamera(); return; }
-        // FIX: Versiones fijas para evitar conflictos
+        // FIX: Versiones fijas
         const scripts = [
           'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js',
           'https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js',
@@ -594,7 +484,7 @@ const useSmartMirrorLogic = () => {
     handleWidgetMouseDown, toggleWidget, setWidgets,
     config, updateConfig, isDayTime, applyPreset, 
     focusMode, interactionProgress, interactionType, focusTime, sessionComplete,
-    viewMode, setViewMode, agendaScrollRef // <--- EXPORTAMOS REF DE SCROLL
+    viewMode, setViewMode, agendaScrollRef
   };
 };
 
