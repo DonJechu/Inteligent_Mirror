@@ -2,6 +2,9 @@ import React from 'react';
 import { Wifi, Battery, Sun, X, Settings, Music as MusicIcon, EyeOff, Loader2, Moon, Plus, Minus, RotateCcw, Power, Check, Palette, Maximize, Calendar, Mail, Clock } from 'lucide-react';
 import useSmartMirrorLogic, { WIDGET_REGISTRY, PRESETS } from './useSmartMirrorLogic';
 
+// ==========================================
+// 🧩 SISTEMA DE COMPONENTES WIDGET
+// ==========================================
 const WIDGET_COMPONENTS = {
   time: ({ data, theme, formatTime, formatDate }) => (
     <div className={`text-center p-8 rounded-full transition-all duration-300 ${data.isDragging ? theme.bgActive : ''}`}>
@@ -68,7 +71,6 @@ const WIDGET_COMPONENTS = {
         ))}
     </div>
   ),
-  // 📅 WIDGET CALENDARIO (BOTÓN)
   calendar: ({ data, theme }) => (
     <div className={`backdrop-blur-xl bg-black/40 rounded-xl p-4 border ${theme.border} w-72 group transition-all duration-300 hover:scale-105 hover:border-${theme.borderColor}`}>
         <div className={`flex items-center gap-2 mb-3 border-b ${theme.border} pb-2`}>
@@ -89,7 +91,6 @@ const WIDGET_COMPONENTS = {
             ))}
             {(!data.events || data.events.length === 0) && <div className="text-xs text-gray-500 italic">Sin eventos próximos</div>}
         </div>
-        {/* HINT TEXTO ACTUALIZADO */}
         <div className={`mt-2 text-[9px] ${theme.textAccent} text-center opacity-0 group-hover:opacity-100 transition-opacity animate-pulse`}>
             PELLIZCA PARA ABRIR
         </div>
@@ -119,10 +120,10 @@ const WIDGET_COMPONENTS = {
   )
 };
 
+// 👇 COMPONENTE: PANTALLA DE AGENDA GIGANTE (Con Ref para Scroll)
 const FullAgendaView = ({ calendarData, theme, scrollRef }) => (
     <div className="absolute inset-0 z-40 flex items-center justify-center p-20 animate-in fade-in zoom-in duration-500 bg-black/95 backdrop-blur-xl">
         <div className="w-full h-full max-w-5xl flex flex-col">
-            {/* Header ... (igual) */}
             <div className={`flex items-end justify-between border-b-2 ${theme.borderColor} pb-6 mb-10`}>
                 <div>
                     <h1 className="text-6xl font-thin tracking-tighter text-white">AGENDA</h1>
@@ -134,10 +135,8 @@ const FullAgendaView = ({ calendarData, theme, scrollRef }) => (
                 </div>
             </div>
 
-            {/* 👇 2. AQUÍ CONECTAMOS LA REF AL DIV SCROLLABLE */}
+            {/* 👇 AQUÍ ESTÁ EL CAMBIO CRÍTICO: ref={scrollRef} */}
             <div ref={scrollRef} className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 overflow-y-auto content-start pb-20 no-scrollbar">
-                
-                {/* ... (el resto del mapeo de eventos sigue igual) ... */}
                 {calendarData.events?.length > 0 ? calendarData.events.map((evt, i) => (
                     <div key={i} className={`p-6 rounded-2xl border ${theme.border} bg-white/5 backdrop-blur-md flex flex-col justify-between hover:bg-white/10 transition-colors group`}>
                         <div>
@@ -159,7 +158,7 @@ const FullAgendaView = ({ calendarData, theme, scrollRef }) => (
             </div>
 
             <div className={`mt-10 pt-6 border-t ${theme.border} flex justify-between items-center text-xs ${theme.textDim}`}>
-                <span className="animate-pulse">PELLIZCA Y ARRASTRA PARA SCROLL • CLICK PARA SALIR</span>
+                <span className="animate-pulse">PELLIZCA (CLICK) Y ARRASTRA PARA SCROLL • SUELTA RÁPIDO PARA SALIR</span>
                 <span>MIRRORLINK SYNC ACTIVE</span>
             </div>
         </div>
@@ -172,7 +171,8 @@ const SmartMirror = () => {
     handPosition, isGrabbing, hoveredWidget, showSettings, setShowSettings, videoRef, 
     handleWidgetMouseDown, toggleWidget, config, updateConfig, isDayTime, applyPreset,
     focusMode, interactionProgress, interactionType, focusTime, sessionComplete,
-    viewMode, agendaScrollRef
+    viewMode,
+    agendaScrollRef // <--- IMPORTANTE: Recibimos la Ref del scroll
   } = useSmartMirrorLogic();
 
   const formatTime = (date) => date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -239,6 +239,7 @@ const SmartMirror = () => {
         </div>
       )}
 
+      {/* VISTAS DEL SISTEMA */}
       <div className={`absolute inset-0 transition-all duration-500 ${viewMode === 'dashboard' ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
           {focusMode && (
               <div className="absolute inset-0 bg-black/95 z-40 flex flex-col items-center justify-center backdrop-blur-sm animate-in fade-in zoom-in">
@@ -277,8 +278,8 @@ const SmartMirror = () => {
           <FullAgendaView 
               calendarData={widgets.calendar || { events: [] }} 
               theme={theme} 
-              formatTime={formatTime}
-              scrollRef={agendaScrollRef}
+              formatTime={formatTime} 
+              scrollRef={agendaScrollRef} // <--- AQUÍ SE CONECTA EL CABLE
           />
       )}
 
@@ -334,6 +335,25 @@ const SmartMirror = () => {
                                         {widgets[w.id]?.visible && <Check size={14} className={theme.textAccent} />}
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-gray-500 text-xs tracking-widest uppercase mb-4">CICLO CIRCADIANO</h3>
+                            <div className="bg-gray-800/50 p-4 rounded-lg flex justify-between items-center mb-2">
+                                <span className="text-sm flex gap-2 items-center"><Sun size={14}/> Inicio Día</span>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => updateConfig('dayStart', config.dayStart - 1)}><Minus size={14}/></button>
+                                    <span className="font-mono text-xl">{config.dayStart}:00</span>
+                                    <button onClick={() => updateConfig('dayStart', config.dayStart + 1)}><Plus size={14}/></button>
+                                </div>
+                            </div>
+                            <div className="bg-gray-800/50 p-4 rounded-lg flex justify-between items-center">
+                                <span className="text-sm flex gap-2 items-center"><Moon size={14}/> Inicio Noche</span>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => updateConfig('nightStart', config.nightStart - 1)}><Minus size={14}/></button>
+                                    <span className="font-mono text-xl">{config.nightStart}:00</span>
+                                    <button onClick={() => updateConfig('nightStart', config.nightStart + 1)}><Plus size={14}/></button>
+                                </div>
                             </div>
                         </div>
                    </div>

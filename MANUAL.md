@@ -1,126 +1,52 @@
-================================================================================
-   _____ _______       _____  _  __    _____ _   _ _____  _    _  _____ _______ 
-  / ____|__   __|/\   |  __ \| |/ /   |_   _| \ | |  __ \| |  | |/ ____|__   __|
- | (___    | |  /  \  | |__) | ' /      | | |  \| | |  | | |  | | (___    | |   
-  \___ \   | | / /\ \ |  _  /|  <       | | | . ` | |  | | |  | |\___ \   | |   
-  ____) |  | |/ ____ \| | \ \| . \     _| |_| |\  | |__| | |__| |____) |  | |   
- |_____/   |_/_/    \_\_|  \_\_|\_\   |_____|_| \_|_____/ \____/|_____/   |_|   
-                                                                                
-================================================================================
-   SISTEMA OPERATIVO DE ESPEJO INTELIGENTE | VERSIÓN 2.0 | PROTOCOLO JARVIS
-================================================================================
+# 🔮 MirrorLink - Manual de Operaciones v1.0
 
-[1] INTRODUCCIÓN
---------------------------------------------------------------------------------
-Bienvenido al futuro. Este espejo inteligente no es solo una pantalla; es un 
-asistente vivo que reacciona a tu presencia y gestos. Diseñado con una 
-arquitectura de visión computarizada híbrida (Manos + Cara) y un motor de 
-física en tiempo real.
+Bienvenido a **MirrorLink**, tu asistente inteligente holográfico. Este sistema se controla completamente mediante gestos en el aire y tu teléfono móvil.
 
-[2] ESTADOS DEL SISTEMA
---------------------------------------------------------------------------------
-El espejo opera en tres estados principales para optimizar energía y rendimiento:
+---
 
-   🌑 MODO STANDBY (Ahorro de Energía)
-      - Se activa automáticamente tras 10 segundos de inactividad.
-      - La pantalla se apaga (fondo negro minimalista).
-      - Sensores: Escaneo rápido de presencia.
-      - CÓMO DESPERTARLO: Simplemente párate enfrente o mueve una mano.
+## 1. ✋ Control Gestual Básico
+El sistema utiliza Inteligencia Artificial para rastrear tu mano.
 
-   🔄 MODO BOOTING (Arranque)
-      - Secuencia de animación estilo "Carga de Sistema".
-      - Restaura tu configuración personal desde la memoria.
+* **El Cursor:** Levanta tu mano frente a la cámara. Un punto de luz seguirá tu movimiento.
+* **La "Pinza" (Click):** Junta tus dedos **Índice y Pulgar** para hacer "Click".
+    * *Mantener Pinza:* Equivale a "Mantener presionado" o "Arrastrar".
+    * *Soltar Pinza:* Equivale a "Soltar click".
 
-   💠 MODO ACTIVO (Interfaz Holográfica)
-      - Despliegue completo de widgets y cursor.
-      - Sensores: Rastreo de mano a 60 FPS (Latencia Cero).
+---
 
-[3] CONTROL GESTUAL (MANOS)
---------------------------------------------------------------------------------
-Olvídate de tocar el cristal. Controla todo en el aire.
+## 2. 📅 Módulo de Productividad (Agenda)
+El sistema de agenda cuenta con una interfaz inmersiva.
 
-   ✋ CURSOR DE MANO
-      Levanta tu mano frente a la cámara. Un cursor (Cyan/Ámbar) seguirá 
-      tu movimiento instantáneamente.
+### ➤ Cómo ABRIR la Agenda
+1.  Mueve el cursor sobre el widget pequeño que dice **"Agenda Hoy"**.
+2.  Haz el gesto de **PINZA** (Click) y manténlo un instante.
+3.  La agenda se expandirá a pantalla completa.
 
-   🤏 GESTO DE PINZA (AGARRAR)
-      Junta tu dedo pulgar e índice para "hacer click" o agarrar.
-      
-      * TECNOLOGÍA "STICKY GRAB": 
-        - Para agarrar: Cierra los dedos con firmeza.
-        - Para soltar: Debes abrirlos claramente. 
-        Esto evita que sueltes widgets por accidente mientras los mueves.
+### ➤ Cómo hacer SCROLL (Subir/Bajar)
+Si tienes muchos eventos, la lista no cabe en una sola pantalla.
+1.  Dentro de la lista de eventos, haz el gesto de **PINZA** (Agarra el aire).
+2.  **Manteniendo la pinza cerrada**, mueve tu mano hacia **ARRIBA** o **ABAJO**.
+3.  La lista se moverá siguiendo tu mano (como si arrastraras una hoja de papel).
 
-   ✊ ARRASTRAR WIDGETS
-      Mantén el gesto de pinza sobre un widget y mueve tu mano.
-      El widget te seguirá con físicas reales.
+### ➤ Cómo SALIR de la Agenda
+1.  Haz el gesto de **PINZA** en cualquier parte de la pantalla.
+2.  **Suéltalo rápido** (sin mover la mano).
+3.  El sistema detectará el "Click" y volverá al Dashboard principal.
 
-[4] INTERACCIONES ESPECIALES Y "HOT CORNERS"
---------------------------------------------------------------------------------
-El sistema cuenta con zonas activas invisibles para comandos rápidos.
+---
 
-   🛑 APAGAR PANTALLA (Standby Forzado)
-      Mantén el cursor en la ESQUINA INFERIOR DERECHA durante 2 segundos.
-      Verás un ícono de "Power" cargando.
+## 3. 🎯 Modo Focus (Pomodoro)
+Para concentrarte y ocultar distracciones:
+1.  Coloca el cursor sobre el **Reloj Grande**.
+2.  Haz el gesto de **PINZA**.
+3.  Todo se ocultará excepto el reloj. Repite para salir.
 
-   🔄 RECARGAR SISTEMA
-      Mantén el cursor en la ESQUINA SUPERIOR IZQUIERDA durante 2 segundos.
-      Útil si necesitas reiniciar la interfaz visual.
+---
 
-   🎯 MODO FOCUS (POMODORO)
-      Mantén el cursor sobre el RELOJ MAESTRO durante 3 segundos.
-      - Efecto: Todo se oscurece. Solo queda un temporizador gigante.
-      - Uso: Para concentrarte sin distracciones.
-      - Salir: Vuelve a mantener el cursor sobre el temporizador.
+## 4. 📱 App Móvil (Companion)
+El espejo no se conecta a internet directamente para tus datos privados, usa tu teléfono como puente seguro.
 
-[5] WIDGETS Y MOTOR DE FÍSICA
---------------------------------------------------------------------------------
-Los elementos en pantalla tienen propiedades físicas.
-
-   🧲 AUTO-ORGANIZACIÓN
-      - Anti-Colisión: Si mueves un widget contra otro, el segundo se apartará
-        suavemente para no encimarse.
-      - Bordes Magnéticos: Si intentas sacar un widget de la pantalla, 
-        el sistema lo empujará de regreso hacia adentro.
-
-   💾 MEMORIA PERSISTENTE
-      El espejo recuerda todo. Si lo apagas y lo enciendes, los widgets 
-      estarán exactamente donde los dejaste.
-
-[6] INTELIGENCIA CIRCADIANA (DÍA / NOCHE)
---------------------------------------------------------------------------------
-El espejo adapta su interfaz según tu ciclo biológico.
-
-   ☀️ MODO DÍA (Configurable, default 06:00 AM)
-      - Color del Tema: CYAN (Energético).
-      - Comportamiento: El Reloj se hace grande y se centra para productividad.
-      - Brillo: Alto contraste.
-
-   🌙 MODO NOCHE (Configurable, default 07:00 PM)
-      - Color del Tema: ÁMBAR/NARANJA (Filtro de luz azul).
-      - Comportamiento: El Reloj se hace pequeño y discreto en la parte superior.
-      - Brillo: Tenue para no afectar el sueño.
-
-[7] CONFIGURACIÓN
---------------------------------------------------------------------------------
-Para abrir el panel de control, haz el gesto de "Pinza" (Click) sobre el 
-botón de engranaje ⚙️ en la esquina superior derecha.
-
-   🔹 ACTIVAR MÓDULOS
-      Enciende o apaga widgets (Clima, Noticias, Música, Estado, etc).
-
-   🔹 CICLO CIRCADIANO
-      Ajusta a qué hora quieres que empiece el "Modo Día" y el "Modo Noche"
-      usando los botones [+] y [-].
-
-================================================================================
-   REQUISITOS DE HARDWARE RECOMENDADOS
-================================================================================
-   - Raspberry Pi 5 (4GB+) con Active Cooler.
-   - Cámara: Pi Camera Module 3 o Webcam USB de calidad.
-   - Pantalla: Monitor con vidrio de espejo bidireccional.
-   - Conexión a Internet (Para Clima y Noticias).
-
-================================================================================
-   STARK INDUSTRIES © 2025 | PROTOTIPO MARK II
-================================================================================
+1.  Abre la App **MirrorLink** en tu celular.
+2.  Asegúrate de estar en el mismo WiFi que el espejo.
+3.  Presiona **"📅 VINCULAR CALENDARIO"**.
+4.  El espejo se actualizará al instante con tus eventos reales de Google/iCloud.

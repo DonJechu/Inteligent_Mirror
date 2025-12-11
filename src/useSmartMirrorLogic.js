@@ -11,7 +11,7 @@ export const WIDGET_REGISTRY = {
   news: { id: 'news', name: 'Feed Global', icon: '📰', category: 'INFO', priority: 4 },
   music: { id: 'music', name: 'Audio', icon: '🎵', category: 'MEDIA', priority: 5, isDynamic: true },
   notifications: { id: 'notifications', name: 'Centro de Mensajes', icon: '💬', category: 'COMUNICACIÓN', priority: 6, isDynamic: true },
-  // 👇 CALENDARIO BLOQUEADO (Actúa como botón)
+  // 👇 CALENDARIO BLOQUEADO (Actúa como botón, no se puede arrastrar)
   calendar: { id: 'calendar', name: 'Agenda Diaria', icon: '📅', category: 'PRODUCTIVIDAD', priority: 7, locked: true },
   mail: { id: 'mail', name: 'Buzón Prioritario', icon: '✉️', category: 'PRODUCTIVIDAD', priority: 8 },
 };
@@ -70,7 +70,7 @@ const useSmartMirrorLogic = () => {
   const [handDetected, setHandDetected] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
 
-  // UI
+  // UI & Interacción
   const [focusMode, setFocusMode] = useState(false);
   const [focusTime, setFocusTime] = useState(1500); 
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -119,7 +119,7 @@ const useSmartMirrorLogic = () => {
 
   const videoRef = useRef(null);
   const grabbedWidgetRef = useRef(null);
-  const widgetsRef = useRef(widgets); // Referencia viva
+  const widgetsRef = useRef(widgets); // Referencia viva a widgets
   
   const handsRef = useRef(null);
   const faceMeshRef = useRef(null);
@@ -134,7 +134,7 @@ const useSmartMirrorLogic = () => {
   useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
 
   // ---------------------------------------------------------
-  // 🔌 CONEXIÓN WEBSOCKET
+  // 🔌 CONEXIÓN WEBSOCKET (PUENTE)
   // ---------------------------------------------------------
   useEffect(() => {
     const newSocket = io('http://localhost:3001');
@@ -262,6 +262,77 @@ const useSmartMirrorLogic = () => {
     return () => clearInterval(timer);
   }, [config]);
 
+  // Pomodoro
+  useEffect(() => {
+    let timer = null;
+    if (focusMode && !sessionComplete && focusTime > 0) {
+      timer = setInterval(() => setFocusTime(prev => prev - 1), 1000);
+    } else if (!focusMode) {
+      setFocusTime(1500); setSessionComplete(false);
+    } else if (focusTime === 0 && !sessionComplete) {
+      setSessionComplete(true); playTechSound('complete');
+      setTimeout(() => { setFocusMode(false); setSessionComplete(false); setFocusTime(1500); }, 5000);
+    }
+    return () => clearInterval(timer);
+  }, [focusMode, focusTime, sessionComplete]);
+
+  // Motor de Física (Evitar colisiones)
+  useEffect(() => {
+    const physicsLoop = setInterval(() => {
+      if (isGrabbing || showSettings || isStandby || focusMode) return;
+      let hasChanges = false;
+      const currentWidgets = { ...widgetsRef.current };
+      const keys = Object.keys(currentWidgets);
+      const repulsionDist = 18;
+
+      keys.forEach((keyA, i) => {
+        const wA = currentWidgets[keyA];
+        if (keyA === 'time' || !wA.visible || wA.isDragging) return;
+
+        let newX = wA.x, newY = wA.y;
+        // Bordes
+        if (newX < 5) newX += (5 - newX) * 0.1; if (newX > 95) newX += (95 - newX) * 0.1;
+        if (newY < 5) newY += (5 - newY) * 0.1; if (newY > 95) newY += (95 - newY) * 0.1;
+
+        // Colisiones con otros widgets
+        keys.forEach((keyB, j) => {
+          if (i === j) return;
+          const wB = currentWidgets[keyB];
+          if (!wB.visible) return;
+          const dx = wA.x - wB.x, dy = wA.y - wB.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < repulsionDist && dist > 0) {
+            const force = (repulsionDist - dist) * 0.05;
+            newX += (dx / dist) * force; newY += (dy / dist) * force;
+          }
+        });
+
+        if (Math.abs(newX - wA.x) > 0.1 || Math.abs(newY - wA.y) > 0.1) {
+          currentWidgets[keyA] = { ...wA, x: newX, y: newY };
+          hasChanges = true;
+        }
+      });
+      if (hasChanges) setWidgets(currentWidgets);
+    }, 50);
+    return () => clearInterval(physicsLoop);
+  }, [isGrabbing, showSettings, isStandby, focusMode]);
+
+  const registerActivity = () => {
+    lastActivityRef.current = Date.now();
+    if (isStandbyRef.current) {
+      setIsStandby(false); setBootPhase('booting'); setTimeout(() => setBootPhase('active'), 2000);
+    }
+  };
+
+  useEffect(() => {
+    const sleepCheck = setInterval(() => {
+      if (!focusMode && !isStandbyRef.current && Date.now() - lastActivityRef.current > 15000) {
+        setIsStandby(true); setBootPhase('standby');
+      }
+    }, 1000);
+    return () => clearInterval(sleepCheck);
+  }, [focusMode]);
+
   // ---------------------------------------------------------
   // 🎮 SISTEMA DE INTERACCIONES (DASHBOARD)
   // ---------------------------------------------------------
@@ -342,48 +413,68 @@ const useSmartMirrorLogic = () => {
       
       setIsGrabbing(isGrabbingNow);
 
-      // === LÓGICA POR VISTA ===
+      // === MODO DASHBOARD (Sin cambios) ===
       if (viewMode === 'dashboard') {
           checkInteractions(screenX, screenY, isGrabbingNow);
-          if (grabbedWidgetRef.current) {
-            if (isGrabbingNow) moveWidget(grabbedWidgetRef.current, screenX, screenY); else releaseWidget();
-          } else {
-            if (isGrabbingNow) checkWidgetGrab(screenX, screenY); else checkWidgetHover(screenX, screenY);
-          }
+          if (grabbedWidgetRef.current) { if (isGrabbingNow) moveWidget(grabbedWidgetRef.current, screenX, screenY); else releaseWidget(); }
+          else { if (isGrabbingNow) checkWidgetGrab(screenX, screenY); else checkWidgetHover(screenX, screenY); }
       } 
-      // === MODO AGENDA: SCROLL Y SALIR ===
+      // === MODO AGENDA (REGLAS DE ZONAS) ===
       else if (viewMode === 'agenda') {
           
-          // 1. INICIO DEL GESTO
+          // 1. DETECTAR INTENCIÓN AL INICIO DEL PELLIZCO
           if (isGrabbingNow && !wasGrabbingRef.current) {
-              grabStartPosRef.current = { x: screenX, y: screenY }; 
-              isDraggingScrollRef.current = false; 
+              lastHandYRef.current = screenY; 
+              interactionTimerRef.current = 0;
+
+              // Definimos la zona de "Scroll" (Caja central aprox)
+              // X: 15% a 85%, Y: 20% a 90% (Donde está el grid de eventos)
+              const inScrollZone = (screenX > 15 && screenX < 85) && (screenY > 20 && screenY < 90);
+              
+              if (inScrollZone) {
+                  grabModeRef.current = 'scroll'; // Entrar en modo SCROLL
+              } else {
+                  grabModeRef.current = 'exit';   // Entrar en modo SALIR
+              }
           }
 
-          // 2. MANTENIENDO EL GESTO
+          // 2. EJECUTAR ACCIÓN MIENTRAS SE PELLIZCA
           if (isGrabbingNow) {
-              const moveDist = grabStartPosRef.current ? Math.abs(screenY - grabStartPosRef.current.y) : 0;
-
-              // Si mueve más de 5% de la pantalla -> ES SCROLL
-              if (moveDist > 5) {
-                  isDraggingScrollRef.current = true; 
-                  
+              
+              // >>> ACCIÓN DE SCROLL <<<
+              if (grabModeRef.current === 'scroll') {
                   if (agendaScrollRef.current && lastHandYRef.current !== null) {
-                      // Delta invertido para sensación táctil
-                      const deltaY = (screenY - lastHandYRef.current) * 15; 
-                      agendaScrollRef.current.scrollTop -= deltaY;
+                      // Delta de movimiento vertical
+                      const deltaY = (screenY - lastHandYRef.current);
+                      // Scroll = Delta * Sensibilidad (30 es muy rápido, 20 es controlable)
+                      // Invertimos signo (-) para que mover mano arriba suba el contenido (natural scrolling)
+                      agendaScrollRef.current.scrollTop -= deltaY * 20; 
+                  }
+              }
+              
+              // >>> ACCIÓN DE SALIR (HOLD 3s) <<<
+              else if (grabModeRef.current === 'exit') {
+                  interactionTimerRef.current += 1;
+                  // Calcular progreso (0 a 100). 3 segundos son aprox 90 frames (30fps*3)
+                  const progress = Math.min(100, (interactionTimerRef.current / 90) * 100);
+                  setInteractionProgress(progress);
+                  setInteractionType('standby'); // Usamos color rojo (standby) para indicar salida
+
+                  if (interactionTimerRef.current > 90) { // Si completa 3s
+                      console.log("🔙 SALIENDO DE AGENDA");
+                      setViewMode('dashboard');
+                      playTechSound('swipe');
+                      interactionTimerRef.current = 0;
+                      setInteractionProgress(0);
                   }
               }
           } 
           
-          // 3. SOLTAR EL GESTO
+          // 3. RESET AL SOLTAR
           if (!isGrabbingNow && wasGrabbingRef.current) {
-              // Si NO fue scroll (fue un toque rápido) -> SALIR
-              if (!isDraggingScrollRef.current) {
-                  console.log("🔙 CLICK DETECTADO: CERRANDO AGENDA");
-                  setViewMode('dashboard');
-                  playTechSound('swipe');
-              }
+              grabModeRef.current = null;
+              setInteractionProgress(0); // Ocultar anillo de carga
+              setInteractionType(null);
           }
       }
       
@@ -431,61 +522,6 @@ const useSmartMirrorLogic = () => {
   const toggleWidget = (id) => setWidgets(prev => ({ ...prev, [id]: { ...prev[id], visible: !prev[id]?.visible } }));
   const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
   const handleWidgetMouseDown = (e, widgetName) => {}; 
-
-  // Motor de Física
-  useEffect(() => {
-    const physicsLoop = setInterval(() => {
-      if (isGrabbing || showSettings || isStandby || focusMode) return;
-      let hasChanges = false;
-      const currentWidgets = { ...widgetsRef.current };
-      const keys = Object.keys(currentWidgets);
-      const repulsionDist = 18;
-
-      keys.forEach((keyA, i) => {
-        const wA = currentWidgets[keyA];
-        if (keyA === 'time' || !wA.visible || wA.isDragging) return;
-
-        let newX = wA.x, newY = wA.y;
-        if (newX < 5) newX += (5 - newX) * 0.1; if (newX > 95) newX += (95 - newX) * 0.1;
-        if (newY < 5) newY += (5 - newY) * 0.1; if (newY > 95) newY += (95 - newY) * 0.1;
-
-        keys.forEach((keyB, j) => {
-          if (i === j) return;
-          const wB = currentWidgets[keyB];
-          if (!wB.visible) return;
-          const dx = wA.x - wB.x, dy = wA.y - wB.y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < repulsionDist && dist > 0) {
-            const force = (repulsionDist - dist) * 0.05;
-            newX += (dx / dist) * force; newY += (dy / dist) * force;
-          }
-        });
-
-        if (Math.abs(newX - wA.x) > 0.1 || Math.abs(newY - wA.y) > 0.1) {
-          currentWidgets[keyA] = { ...wA, x: newX, y: newY };
-          hasChanges = true;
-        }
-      });
-      if (hasChanges) setWidgets(currentWidgets);
-    }, 50);
-    return () => clearInterval(physicsLoop);
-  }, [isGrabbing, showSettings, isStandby, focusMode]);
-
-  const registerActivity = () => {
-    lastActivityRef.current = Date.now();
-    if (isStandbyRef.current) {
-      setIsStandby(false); setBootPhase('booting'); setTimeout(() => setBootPhase('active'), 2000);
-    }
-  };
-
-  useEffect(() => {
-    const sleepCheck = setInterval(() => {
-      if (!focusMode && !isStandbyRef.current && Date.now() - lastActivityRef.current > 15000) {
-        setIsStandby(true); setBootPhase('standby');
-      }
-    }, 1000);
-    return () => clearInterval(sleepCheck);
-  }, [focusMode]);
 
   // ---------------------------------------------------------
   // INICIALIZACIÓN (FIX CÁMARA)

@@ -1,16 +1,34 @@
-# React + Vite
+# MirrorLink 🔮
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> Un Espejo Inteligente (Smart Mirror) interactivo controlado por visión computarizada y sincronizado vía móvil.
 
-Currently, two official plugins are available:
+MirrorLink transforma un monitor convencional en una interfaz futurista al estilo "Jarvis". Utiliza **MediaPipe** para el reconocimiento de gestos en tiempo real y una **App Móvil** (React Native) para sincronizar calendarios y notificaciones de manera segura sin exponer credenciales en el dispositivo IoT.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Características Principales
 
-## React Compiler
+* **🖐️ Control Gestual sin Tocar:** Navegación completa usando visión artificial (Hand Tracking).
+* **📅 Agenda Inmersiva:** Visualización de eventos con scroll gestual físico (Pinch & Drag).
+* **📱 Sincronización Móvil:** Puente seguro (WebSocket) para enviar Calendario, Notificaciones y Comandos desde el celular.
+* **⚡ Arquitectura React + Vite:** Rendimiento ultra-rápido y animaciones fluidas a 60fps.
+* **🧘 Modos de Escena:** Modo Día, Modo Noche y Modo Focus (Pomodoro).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Tecnologías
 
-## Expanding the ESLint configuration
+* **Frontend:** React, Vite, TailwindCSS.
+* **AI/Visión:** Google MediaPipe (Hands & Face Mesh).
+* **Backend (Puente):** Node.js, Express, Socket.io.
+* **Mobile App:** React Native (Expo), Expo Calendar.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 📦 Instalación y Despliegue
+
+Este proyecto consta de 3 partes que deben funcionar en simultáneo.
+
+### Prerrequisitos
+* Node.js (v18 o superior).
+* Un celular con la app Expo Go instalada.
+
+### 1. Clonar el repositorio
+```bash
+git clone [https://github.com/tu-usuario/mirrorlink.git](https://github.com/tu-usuario/mirrorlink.git)
+cd mirrorlink
+npm install
