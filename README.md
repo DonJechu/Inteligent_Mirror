@@ -47,6 +47,6 @@ This project consists of 3 parts running simultaneously: **Server**, **Mirror Cl
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/your-username/mirrorlink.git](https://github.com/your-username/mirrorlink.git)
+git clone [https://github.com/DonJechu/Inteligent_Mirror.git](https://github.com/DonJechu/Inteligent_Mirror.git)
 cd mirrorlink
 npm install
