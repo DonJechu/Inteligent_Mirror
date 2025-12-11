@@ -12,14 +12,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "cors": "^2.8.5",
     "express": "^5.2.1",
+    "google-search-results-nodejs": "^2.1.0",
     "ip": "^2.0.1",
     "lucide-react": "^0.556.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-speech-recognition": "^4.0.1",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

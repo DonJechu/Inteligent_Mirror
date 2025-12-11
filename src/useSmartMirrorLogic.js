@@ -413,73 +413,63 @@ const useSmartMirrorLogic = () => {
       
       setIsGrabbing(isGrabbingNow);
 
-      // === MODO DASHBOARD (Sin cambios) ===
+      // === LÓGICA POR VISTA ===
       if (viewMode === 'dashboard') {
           checkInteractions(screenX, screenY, isGrabbingNow);
-          if (grabbedWidgetRef.current) { if (isGrabbingNow) moveWidget(grabbedWidgetRef.current, screenX, screenY); else releaseWidget(); }
-          else { if (isGrabbingNow) checkWidgetGrab(screenX, screenY); else checkWidgetHover(screenX, screenY); }
+          if (grabbedWidgetRef.current) {
+            if (isGrabbingNow) moveWidget(grabbedWidgetRef.current, screenX, screenY); else releaseWidget();
+          } else {
+            if (isGrabbingNow) checkWidgetGrab(screenX, screenY); else checkWidgetHover(screenX, screenY);
+          }
       } 
-      // === MODO AGENDA (REGLAS DE ZONAS) ===
+      // === MODO AGENDA: SCROLL Y SALIR ===
       else if (viewMode === 'agenda') {
           
-          // 1. DETECTAR INTENCIÓN AL INICIO DEL PELLIZCO
+          // 1. INICIO DEL GESTO
           if (isGrabbingNow && !wasGrabbingRef.current) {
-              lastHandYRef.current = screenY; 
-              interactionTimerRef.current = 0;
-
-              // Definimos la zona de "Scroll" (Caja central aprox)
-              // X: 15% a 85%, Y: 20% a 90% (Donde está el grid de eventos)
-              const inScrollZone = (screenX > 15 && screenX < 85) && (screenY > 20 && screenY < 90);
-              
-              if (inScrollZone) {
-                  grabModeRef.current = 'scroll'; // Entrar en modo SCROLL
-              } else {
-                  grabModeRef.current = 'exit';   // Entrar en modo SALIR
-              }
+              grabStartPosRef.current = { x: screenX, y: screenY }; 
+              lastHandYRef.current = screenY; // Guardar Y inicial para delta
+              isDraggingScrollRef.current = false; 
+              interactionTimerRef.current = 0; // Reiniciar contador de salida
           }
 
-          // 2. EJECUTAR ACCIÓN MIENTRAS SE PELLIZCA
+          // 2. MANTENIENDO EL GESTO
           if (isGrabbingNow) {
-              
-              // >>> ACCIÓN DE SCROLL <<<
-              if (grabModeRef.current === 'scroll') {
-                  if (agendaScrollRef.current && lastHandYRef.current !== null) {
-                      // Delta de movimiento vertical
-                      const deltaY = (screenY - lastHandYRef.current);
-                      // Scroll = Delta * Sensibilidad (30 es muy rápido, 20 es controlable)
-                      // Invertimos signo (-) para que mover mano arriba suba el contenido (natural scrolling)
-                      agendaScrollRef.current.scrollTop -= deltaY * 20; 
-                  }
-              }
-              
-              // >>> ACCIÓN DE SALIR (HOLD 3s) <<<
-              else if (grabModeRef.current === 'exit') {
-                  interactionTimerRef.current += 1;
-                  // Calcular progreso (0 a 100). 3 segundos son aprox 90 frames (30fps*3)
-                  const progress = Math.min(100, (interactionTimerRef.current / 90) * 100);
-                  setInteractionProgress(progress);
-                  setInteractionType('standby'); // Usamos color rojo (standby) para indicar salida
+              // Calcular distancia total movida desde el inicio del pellizco
+              const moveDist = grabStartPosRef.current 
+                  ? Math.abs(screenY - grabStartPosRef.current.y) 
+                  : 0;
 
-                  if (interactionTimerRef.current > 90) { // Si completa 3s
-                      console.log("🔙 SALIENDO DE AGENDA");
+              // UMBRAL DE SCROLL: Si mueve la mano más de 2% de la pantalla, es SCROLL
+              if (moveDist > 2) {
+                  isDraggingScrollRef.current = true; 
+                  interactionTimerRef.current = 0; // Si mueve, reseteamos el contador de salida
+
+                  if (agendaScrollRef.current && lastHandYRef.current !== null) {
+                      // Sensibilidad del scroll (25 es un buen factor de velocidad)
+                      const sensitivity = 25; 
+                      // Delta invertido: Mover mano arriba (Y baja) -> Scroll Baja (scrollTop aumenta)
+                      const deltaY = (screenY - lastHandYRef.current) * sensitivity; 
+                      agendaScrollRef.current.scrollTop -= deltaY; 
+                  }
+              } 
+              // SI NO SE MUEVE -> CONTAR TIEMPO PARA SALIR (HOLD)
+              else if (!isDraggingScrollRef.current) {
+                  interactionTimerRef.current += 1;
+                  
+                  // Si mantiene quieto por ~0.8 segundos (50 frames)
+                  if (interactionTimerRef.current > 50) {
+                      console.log("🔙 HOLD DETECTADO: CERRANDO AGENDA");
                       setViewMode('dashboard');
                       playTechSound('swipe');
                       interactionTimerRef.current = 0;
-                      setInteractionProgress(0);
                   }
               }
           } 
-          
-          // 3. RESET AL SOLTAR
-          if (!isGrabbingNow && wasGrabbingRef.current) {
-              grabModeRef.current = null;
-              setInteractionProgress(0); // Ocultar anillo de carga
-              setInteractionType(null);
-          }
       }
       
       wasGrabbingRef.current = isGrabbingNow; 
-      lastHandYRef.current = screenY; 
+      lastHandYRef.current = screenY; // Actualizar para el siguiente frame
 
     } else {
       setHandDetected(false); setHoveredWidget(null);
