@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stark Controller</title>
+    <style>
+        body { background-color: #000; color: #0ff; font-family: monospace; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        h1 { text-align: center; border-bottom: 1px solid #0ff; padding-bottom: 10px; }
+        .status { text-align: center; font-size: 12px; color: #555; }
+        .connected { color: #0f0; }
+        
+        button {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 15px;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:active { background: #0ff; color: #000; }
+        
+        .custom-area { border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        input { background: #111; border: 1px solid #555; color: white; padding: 10px; font-family: inherit; }
+    </style>
+</head>
+<body>
+    <h1>STARK LINK</h1>
+    <div id="status" class="status">Desconectado...</div>
+
+    <button onclick="sendTest('WhatsApp', 'Pepper: Ya está lista la cena.')">
+        💬 Test WhatsApp
+    </button>
+    
+    <button onclick="sendTest('Instagram', 'Happy Hogan le dio like a tu foto.')">
+        📸 Test Instagram
+    </button>
+
+    <div class="custom-area">
+        <label>Mensaje Personalizado:</label>
+        <input type="text" id="customApp" placeholder="App (ej: Jarvis)">
+        <input type="text" id="customMsg" placeholder="Mensaje...">
+        <button onclick="sendCustom()">ENVIAR</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Conectarse al mismo servidor que sirve esta página
+        const socket = io();
+        const statusDiv = document.getElementById('status');
+
+        socket.on('connect', () => {
+            statusDiv.textContent = '🟢 CONECTADO AL NÚCLEO';
+            statusDiv.classList.add('connected');
+            socket.emit('identify', 'phone');
+        });
+
+        socket.on('disconnect', () => {
+            statusDiv.textContent = '🔴 DESCONECTADO';
+            statusDiv.classList.remove('connected');
+        });
+
+        function sendTest(app, msg) {
+            socket.emit('send-notification', { app: app, message: msg });
+        }
+
+        function sendCustom() {
+            const app = document.getElementById('customApp').value || 'Sistema';
+            const msg = document.getElementById('customMsg').value;
+            if(msg) {
+                sendTest(app, msg);
+                document.getElementById('customMsg').value = '';
+            }
+        }
+    </script>
+</body>
+</html>
