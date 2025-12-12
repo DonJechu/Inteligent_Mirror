@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-// 👇 IMPORTAMOS EL NUEVO MÓDULO DE VOZ QUE CREASTE
 import useJarvisVoice from './useJarvisVoice';
 
 // ==========================================
@@ -9,18 +8,15 @@ import useJarvisVoice from './useJarvisVoice';
 export const WIDGET_REGISTRY = {
   time: { id: 'time', name: 'Reloj Maestro', icon: '🕐', category: 'SISTEMA', priority: 1, locked: true },
   weather: { id: 'weather', name: 'Atmósfera', icon: '☀️', category: 'AMBIENTE', priority: 2 },
-  // 👇 WIDGET JARVIS
   search: { id: 'search', name: 'Jarvis AI', icon: '🎙️', category: 'INTELIGENCIA', priority: 0, visible: false },
   status: { id: 'status', name: 'Sistemas', icon: '📶', category: 'SISTEMA', priority: 3 },
   news: { id: 'news', name: 'Feed Global', icon: '📰', category: 'INFO', priority: 4 },
   music: { id: 'music', name: 'Audio', icon: '🎵', category: 'MEDIA', priority: 5, isDynamic: true },
   notifications: { id: 'notifications', name: 'Centro de Mensajes', icon: '💬', category: 'COMUNICACIÓN', priority: 6, isDynamic: true },
-  // 👇 CALENDARIO BLOQUEADO (Botón)
   calendar: { id: 'calendar', name: 'Agenda Diaria', icon: '📅', category: 'PRODUCTIVIDAD', priority: 7, locked: true },
   mail: { id: 'mail', name: 'Buzón Prioritario', icon: '✉️', category: 'PRODUCTIVIDAD', priority: 8 },
 };
 
-// ⚙️ PRESETS
 export const PRESETS = {
   default: {
     time: { x: 50, y: 50, visible: true, scale: 1.5 },
@@ -32,34 +28,18 @@ export const PRESETS = {
     calendar: { x: 20, y: 50, visible: true, scale: 1, events: [] },
     mail: { x: 20, y: 80, visible: true, scale: 1, emails: [] },
     search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
-  },
-  morning: { 
-    time: { x: 50, y: 15, visible: true, scale: 1 },
-    weather: { x: 85, y: 20, visible: true, scale: 1 },
-    status: { x: 90, y: 5, visible: true, scale: 0.8 },
-    news: { x: 50, y: 85, visible: true, scale: 1 },
-    music: { x: 10, y: 90, visible: false, scale: 1 },
-    notifications: { x: 90, y: 80, visible: true, scale: 1, items: [] },
-    calendar: { x: 25, y: 50, visible: true, scale: 1.2, events: [] },
-    mail: { x: 75, y: 50, visible: true, scale: 1.1, emails: [] },
-    search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
-  },
-  zen: { 
-    time: { x: 50, y: 50, visible: true, scale: 1.2 },
-    weather: { x: 50, y: 65, visible: true, scale: 0.8 },
-    status: { x: 90, y: 5, visible: false, scale: 1 },
-    news: { x: 50, y: 90, visible: false, scale: 1 },
-    music: { x: 80, y: 80, visible: true, scale: 1 },
-    notifications: { x: 90, y: 50, visible: false, scale: 1, items: [] },
-    calendar: { x: 50, y: 80, visible: true, scale: 1, events: [] },
-    mail: { x: 20, y: 80, visible: false, scale: 1, emails: [] },
-    search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
   }
 };
 
-const DEFAULT_CONFIG = { dayStart: 6, nightStart: 19, theme: 'stark', opacity: 1, scale: 1 };
+const DEFAULT_CONFIG = { 
+    dayStart: 6, 
+    nightStart: 19, 
+    theme: 'stark', 
+    opacity: 1, 
+    scale: 1 
+};
 
-// 🔊 SISTEMA DE SONIDO (Global para que lo usen todos)
+// 🔊 SISTEMA DE SONIDO
 const playTechSound = (type) => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -97,22 +77,17 @@ const playTechSound = (type) => {
 };
 
 const useSmartMirrorLogic = () => {
-  // ---------------------------------------------------------
-  // 1. ESTADOS
-  // ---------------------------------------------------------
   const [time, setTime] = useState(new Date());
   const [weather] = useState({ temp: 24, condition: 'Cielo Despejado' });
   const [cameraActive, setCameraActive] = useState(false);
   const [isDayTime, setIsDayTime] = useState(true);
   const [viewMode, setViewMode] = useState('dashboard');
 
-  // IA
   const [isStandby, setIsStandby] = useState(false); 
   const [bootPhase, setBootPhase] = useState('active');
   const [handDetected, setHandDetected] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
 
-  // UI
   const [focusMode, setFocusMode] = useState(false);
   const [focusTime, setFocusTime] = useState(1500); 
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -125,10 +100,9 @@ const useSmartMirrorLogic = () => {
   const [isGrabbing, setIsGrabbing] = useState(false);
   const [hoveredWidget, setHoveredWidget] = useState(null);
 
-  // DATA
   const [widgets, setWidgets] = useState(() => {
     try {
-      const saved = localStorage.getItem('jarvis_mirror_config_v1');
+      const saved = localStorage.getItem('jarvis_mirror_config_v2'); 
       if (saved) return { ...PRESETS.default, ...JSON.parse(saved) };
     } catch (e) { console.error(e); }
     return PRESETS.default;
@@ -136,13 +110,12 @@ const useSmartMirrorLogic = () => {
 
   const [config, setConfig] = useState(() => {
     try {
-      const saved = localStorage.getItem('jarvis_mirror_settings_v1');
+      const saved = localStorage.getItem('jarvis_mirror_settings_v2');
       if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
     } catch (e) { console.error(e); }
     return DEFAULT_CONFIG;
   });
 
-  // 🎤 INICIALIZAR JARVIS (Aquí conectamos el hook de voz)
   useJarvisVoice({
       setWidgets,
       setIsStandby,
@@ -151,39 +124,30 @@ const useSmartMirrorLogic = () => {
       searchWidgetDefault: WIDGET_REGISTRY.search
   });
 
-  // ---------------------------------------------------------
-  // 2. REFS
-  // ---------------------------------------------------------
   const lastActivityRef = useRef(Date.now());
   const frameCountRef = useRef(0);
   const isStandbyRef = useRef(false);
   const interactionTimerRef = useRef(0);
   const focusModeRef = useRef(false);
   const viewModeRef = useRef('dashboard'); 
-
-  // Refs de Scroll y Gestos
   const agendaScrollRef = useRef(null); 
   const grabStartPosRef = useRef(null); 
   const isDraggingScrollRef = useRef(false);
   const wasGrabbingRef = useRef(false);
   const lastHandYRef = useRef(null);
-
   const videoRef = useRef(null);
   const grabbedWidgetRef = useRef(null);
   const widgetsRef = useRef(widgets); 
   const handsRef = useRef(null);
   const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
+  const isCameraInitializingRef = useRef(false);
 
-  // 3. SINCRONIZACIÓN DE REFS
   useEffect(() => { widgetsRef.current = widgets; }, [widgets]);
   useEffect(() => { isStandbyRef.current = isStandby; }, [isStandby]);
   useEffect(() => { focusModeRef.current = focusMode; }, [focusMode]);
   useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
 
-  // ---------------------------------------------------------
-  // 🔌 CONEXIÓN WEBSOCKET
-  // ---------------------------------------------------------
   useEffect(() => {
     const newSocket = io('http://localhost:3001');
     newSocket.on('connect', () => { console.log("🟢 Conectado"); newSocket.emit('identify', 'mirror'); });
@@ -217,13 +181,10 @@ const useSmartMirrorLogic = () => {
     return () => newSocket.close();
   }, []);
 
-  // ---------------------------------------------------------
-  // 💾 UTILS
-  // ---------------------------------------------------------
   const applyPreset = (presetName) => { const preset = PRESETS[presetName] || PRESETS.default; setWidgets(prev => { const newWidgets = { ...prev }; Object.keys(preset).forEach(key => { if (newWidgets[key]) newWidgets[key] = { ...newWidgets[key], ...preset[key], isDragging: false }; }); return newWidgets; }); };
   
-  useEffect(() => { if (!isGrabbing && bootPhase === 'active') { const clean = {}; Object.keys(widgets).forEach(k => clean[k] = { ...widgets[k], isDragging: false }); localStorage.setItem('jarvis_mirror_config_v1', JSON.stringify(clean)); } }, [widgets, isGrabbing]);
-  useEffect(() => { localStorage.setItem('jarvis_mirror_settings_v1', JSON.stringify(config)); }, [config]);
+  useEffect(() => { if (!isGrabbing && bootPhase === 'active') { const clean = {}; Object.keys(widgets).forEach(k => clean[k] = { ...widgets[k], isDragging: false }); localStorage.setItem('jarvis_mirror_config_v2', JSON.stringify(clean)); } }, [widgets, isGrabbing]);
+  useEffect(() => { localStorage.setItem('jarvis_mirror_settings_v2', JSON.stringify(config)); }, [config]);
   useEffect(() => { const t = setInterval(() => { const n = new Date(); setTime(n); setIsDayTime(n.getHours() >= config.dayStart && n.getHours() < config.nightStart); }, 1000); return () => clearInterval(t); }, [config]);
   
   useEffect(() => { let timer = null; if (focusMode && !sessionComplete && focusTime > 0) { timer = setInterval(() => setFocusTime(prev => prev - 1), 1000); } else if (!focusMode) { setFocusTime(1500); setSessionComplete(false); } else if (focusTime === 0 && !sessionComplete) { setSessionComplete(true); playTechSound('complete'); setTimeout(() => { setFocusMode(false); setSessionComplete(false); setFocusTime(1500); }, 5000); } return () => clearInterval(timer); }, [focusMode, focusTime, sessionComplete]);
@@ -233,14 +194,10 @@ const useSmartMirrorLogic = () => {
   const registerActivity = () => { lastActivityRef.current = Date.now(); if (isStandbyRef.current) { setIsStandby(false); setBootPhase('booting'); setTimeout(() => setBootPhase('active'), 2000); } };
   useEffect(() => { const s = setInterval(() => { if (!focusMode && !isStandbyRef.current && Date.now() - lastActivityRef.current > 15000) { setIsStandby(true); setBootPhase('standby'); } }, 1000); return () => clearInterval(s); }, [focusMode]);
 
-  // ---------------------------------------------------------
-  // 🎮 SISTEMA DE INTERACCIONES (DASHBOARD)
-  // ---------------------------------------------------------
   const checkInteractions = (x, y, isGrabbingInput) => {
     if (grabbedWidgetRef.current) { interactionTimerRef.current = 0; setInteractionProgress(0); setInteractionType(null); return; }
     const margin = 10; let activeType = null;
     
-    // SOLO EN DASHBOARD
     if (viewModeRef.current === 'dashboard') {
         if (x < margin && y < margin) activeType = 'reload';
         else if (x > (100 - margin) && y > (100 - margin)) activeType = 'standby';
@@ -253,8 +210,6 @@ const useSmartMirrorLogic = () => {
                     const dx = Math.abs(timeWidget.x - x), dy = Math.abs(timeWidget.y - y);
                     if (dx < 15 * (timeWidget.scale || 1) && dy < 15 * (timeWidget.scale || 1) && isGrabbingInput) activeType = 'focus';
                 }
-                
-                // AGENDA (Solo si se pellizca)
                 const calWidget = widgetsRef.current.calendar;
                 if (calWidget?.visible) {
                     const dx = Math.abs(calWidget.x - x), dy = Math.abs(calWidget.y - y);
@@ -278,11 +233,10 @@ const useSmartMirrorLogic = () => {
             if (activeType === 'focus') setFocusMode(prev => !prev);
             
             if (activeType === 'agenda') {
-                console.log("📅 BOTÓN PULSADO: ABRIENDO AGENDA");
+                console.log("📅 AGENDA ABIERTA");
                 setViewMode('agenda');
                 playTechSound('swipe');
             }
-            
             interactionTimerRef.current = 0; setInteractionProgress(0); setInteractionType(null);
         }
     } else if (interactionTimerRef.current > 0) {
@@ -290,9 +244,6 @@ const useSmartMirrorLogic = () => {
     }
   };
 
-  // ---------------------------------------------------------
-  // ✋ LÓGICA DE MANOS: SCROLL Y SALIR ARREGLADOS
-  // ---------------------------------------------------------
   const onHandResults = (results) => {
     if (results.multiHandLandmarks?.[0]) {
       registerActivity();
@@ -309,7 +260,6 @@ const useSmartMirrorLogic = () => {
       
       setIsGrabbing(isGrabbingNow);
 
-      // === MODO DASHBOARD ===
       if (viewMode === 'dashboard') {
           checkInteractions(screenX, screenY, isGrabbingNow);
           if (grabbedWidgetRef.current) {
@@ -318,10 +268,7 @@ const useSmartMirrorLogic = () => {
             if (isGrabbingNow) checkWidgetGrab(screenX, screenY); else checkWidgetHover(screenX, screenY);
           }
       } 
-      // === MODO AGENDA (SCROLL + SALIR) ===
       else if (viewMode === 'agenda') {
-          
-          // 1. INICIO DEL PELLIZCO
           if (isGrabbingNow && !wasGrabbingRef.current) {
               grabStartPosRef.current = { x: screenX, y: screenY }; 
               lastHandYRef.current = screenY; 
@@ -329,30 +276,24 @@ const useSmartMirrorLogic = () => {
               interactionTimerRef.current = 0; 
           }
 
-          // 2. MANTENIENDO PELLIZCO
           if (isGrabbingNow) {
-              // Calcular movimiento
               const moveDist = grabStartPosRef.current 
                   ? Math.abs(screenY - grabStartPosRef.current.y) 
                   : 0;
 
-              // UMBRAL SCROLL: Si mueve > 2% pantalla
               if (moveDist > 2) {
                   isDraggingScrollRef.current = true; 
-                  interactionTimerRef.current = 0; // Si mueve, no es salida
-
+                  interactionTimerRef.current = 0; 
                   if (agendaScrollRef.current && lastHandYRef.current !== null) {
                       const sensitivity = 25; 
                       const deltaY = (screenY - lastHandYRef.current) * sensitivity; 
-                      agendaScrollRef.current.scrollTop -= deltaY; // Mover scroll
+                      agendaScrollRef.current.scrollTop -= deltaY; 
                   }
               } 
-              // SI NO SE MUEVE -> CONTAR TIEMPO PARA SALIR (HOLD)
               else if (!isDraggingScrollRef.current) {
                   interactionTimerRef.current += 1;
-                  
-                  if (interactionTimerRef.current > 50) { // ~2 seg
-                      console.log("🔙 HOLD DETECTADO: CERRANDO AGENDA");
+                  if (interactionTimerRef.current > 50) { 
+                      console.log("🔙 CERRANDO AGENDA");
                       setViewMode('dashboard');
                       playTechSound('swipe');
                       interactionTimerRef.current = 0;
@@ -360,10 +301,8 @@ const useSmartMirrorLogic = () => {
               }
           } 
       }
-      
       wasGrabbingRef.current = isGrabbingNow; 
       lastHandYRef.current = screenY; 
-
     } else {
       setHandDetected(false); setHoveredWidget(null);
       interactionTimerRef.current = 0; setInteractionProgress(0);
@@ -374,11 +313,9 @@ const useSmartMirrorLogic = () => {
 
   const onFaceResults = (r) => { if (r.multiFaceLandmarks?.[0]) { registerActivity(); setFaceDetected(true); } else setFaceDetected(false); };
 
-  // --- HELPERS ---
   const checkWidgetGrab = (x, y) => {
     const threshold = 18;
     for (let [name, widget] of Object.entries(widgetsRef.current)) {
-      // Bloqueamos 'time' y 'calendar'
       if (!widget.visible || name === 'time' || name === 'calendar') continue;
       if (Math.abs(widget.x - x) < threshold && Math.abs(widget.y - y) < threshold) {
         grabbedWidgetRef.current = name;
@@ -405,9 +342,9 @@ const useSmartMirrorLogic = () => {
   const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
   const handleWidgetMouseDown = (e, widgetName) => {}; 
 
-  // INICIALIZACIÓN (CÁMARA)
   useEffect(() => {
-    if (cameraRef.current) return;
+    if (cameraRef.current || isCameraInitializingRef.current) return;
+    isCameraInitializingRef.current = true;
 
     const initCamera = async () => {
       try {
@@ -418,13 +355,24 @@ const useSmartMirrorLogic = () => {
           setCameraActive(true);
         }
         
-        if (typeof window.Hands === 'undefined' || typeof window.FaceMesh === 'undefined') return;
+        if (typeof window.Hands === 'undefined' || typeof window.FaceMesh === 'undefined') {
+            isCameraInitializingRef.current = false;
+            return;
+        }
 
-        handsRef.current = new window.Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        // 🛠️ AQUÍ ESTÁ EL ARREGLO: USAMOS LA ÚLTIMA VERSIÓN
+        // Al quitar el número de versión, usamos "latest" tanto para el JS como para el WASM
+        handsRef.current = new window.Hands({ 
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` 
+        });
+        
         handsRef.current.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
         handsRef.current.onResults(onHandResults);
 
-        faceMeshRef.current = new window.FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+        faceMeshRef.current = new window.FaceMesh({ 
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` 
+        });
+        
         faceMeshRef.current.setOptions({ maxNumFaces: 1, refineLandmarks: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
         faceMeshRef.current.onResults(onFaceResults);
 
@@ -442,25 +390,30 @@ const useSmartMirrorLogic = () => {
           width: 320, height: 240
         });
         await cameraRef.current.start();
-      } catch (err) { console.error("Init Error", err); }
+      } catch (err) { 
+          console.error("Init Error", err); 
+          isCameraInitializingRef.current = false;
+      }
     };
 
     const loadMediaPipe = () => {
         if (window.Hands && window.FaceMesh) { initCamera(); return; }
-        // FIX: Versiones fijas
+        // 🛠️ ACTUALIZAMOS LAS URLs A LA VERSIÓN MÁS RECIENTE
         const scripts = [
           'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js',
           'https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js',
           'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js',
-          'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js',
-          'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js'
+          'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js', 
+          'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js'
         ];
         let loaded = 0;
         const loadNext = () => {
             if (loaded >= scripts.length) { setTimeout(initCamera, 500); return; }
             if (document.querySelector(`script[src="${scripts[loaded]}"]`)) { loaded++; loadNext(); return; }
             const script = document.createElement('script');
-            script.src = scripts[loaded]; script.async = false;
+            script.src = scripts[loaded]; 
+            script.crossOrigin = "anonymous"; // Importante para WASM
+            script.async = false;
             script.onload = () => { loaded++; loadNext(); };
             document.head.appendChild(script);
         };
@@ -474,6 +427,7 @@ const useSmartMirrorLogic = () => {
              try { cameraRef.current.stop(); } catch(e){}
              cameraRef.current = null;
         }
+        isCameraInitializingRef.current = false;
     };
   }, []);
 

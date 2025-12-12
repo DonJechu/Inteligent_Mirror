@@ -6,7 +6,7 @@ import ip from 'ip';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createRequire } from 'module';
-import OpenAI from 'openai'; // Usamos la librería de OpenAI para conectar con DeepSeek
+import OpenAI from 'openai'; 
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -22,12 +22,13 @@ const __dirname = dirname(__filename);
 
 // 🧠 MEMORIA DE CORTO PLAZO
 let lastSearchContext = null; 
+let lastAiResponse = ""; // <--- ¡NUEVO! Aquí guardamos lo que dijo JARVIS
 
 // 🤖 CONFIGURACIÓN DEEPSEEK
 let deepseek = null;
 if (DEEPSEEK_API_KEY) {
     deepseek = new OpenAI({
-        baseURL: 'https://api.deepseek.com', // <--- La clave: Apuntamos a DeepSeek
+        baseURL: 'https://api.deepseek.com',
         apiKey: DEEPSEEK_API_KEY
     });
 }
@@ -58,7 +59,6 @@ const performSearch = (query, lat, lon, res) => {
     try {
         const search = new GoogleSearch(SERPAPI_KEY);
         let finalQuery = query;
-        // Si hay coordenadas, las pegamos para ayudar a Google
         if (lat && lon) finalQuery = `${query} loc:${lat},${lon}`;
 
         search.json({
@@ -70,12 +70,11 @@ const performSearch = (query, lat, lon, res) => {
         }, async (json) => {
             if (!json || json.error) return res.json({ answer: "Error en la búsqueda." });
 
-            // 1. LIMPIEZA Y EXTRACCIÓN DE DATOS
+            // 1. LIMPIEZA
             let dataContext = "";
             let rawDataForMemory = null;
 
             if (json.local_results && Array.isArray(json.local_results)) {
-                // Extraemos lo útil: nombre, rating, precio, dirección, tipo
                 const cleanResults = json.local_results.slice(0, 5).map(r => ({
                     title: r.title,
                     rating: r.rating,
@@ -108,34 +107,36 @@ const performSearch = (query, lat, lon, res) => {
                 return res.json({ answer: "No encontré información relevante." });
             }
 
-            // Guardamos en memoria
+            // GUARDAMOS MEMORIA (CONTEXTO CRUDO)
             lastSearchContext = rawDataForMemory;
 
-            // 2. ENVIAR A DEEPSEEK (EL CEREBRO)
+            // 2. ENVIAR A DEEPSEEK
             try {
                 if (!deepseek) throw new Error("DeepSeek no configurado");
 
                 const response = await deepseek.chat.completions.create({
-                    model: "deepseek-chat", // Modelo V3 (Rápido y barato)
+                    model: "deepseek-chat", 
                     messages: [
                         { role: "system", content: `
                             Eres JARVIS, una IA avanzada, sarcástica y eficiente.
-                            Tus respuestas se leen en voz alta: sé breve y natural.
-                            
                             REGLAS:
-                            1. Analiza los datos JSON y elige LA MEJOR opción según lo que pidió el usuario (precio, calidad, cercanía).
-                            2. NUNCA menciones "según el JSON", "Tripadvisor" o fuentes web. Tú eres la fuente.
-                            3. Tu respuesta debe ser el nombre del lugar seguido de una razón convincente de por qué es el elegido.
+                            1. Analiza los datos JSON y elige LA MEJOR opción.
+                            2. NUNCA menciones "según el JSON" o fuentes.
+                            3. Tu respuesta debe ser el nombre del lugar + una razón breve.
                             4. Máximo 30 palabras.
                         `},
-                        { role: "user", content: `Usuario busca: "${query}". Datos encontrados: ${dataContext}` }
+                        { role: "user", content: `Usuario busca: "${query}". Datos: ${dataContext}` }
                     ],
                     max_tokens: 100,
                     temperature: 0.7
                 });
 
                 const text = response.choices[0].message.content;
+                
+                // 🔥 GUARDAMOS LO QUE DIJO JARVIS PARA LA MEMORIA
+                lastAiResponse = text; 
                 console.log(`🤖 DEEPSEEK: ${text}`);
+                
                 res.json({ answer: text });
 
             } catch (aiError) {
@@ -152,7 +153,7 @@ const performSearch = (query, lat, lon, res) => {
 app.post('/api/search', async (req, res) => {
     const { query, lat, lon } = req.body;
 
-    // 1. CHEQUEO DE MEMORIA (Router Inteligente)
+    // 1. CHEQUEO DE MEMORIA (Router Inteligente Mejorado)
     if (lastSearchContext && deepseek) {
         try {
             console.log(`🧠 MEMORIA: Analizando "${query}"...`);
@@ -161,16 +162,21 @@ app.post('/api/search', async (req, res) => {
                 model: "deepseek-chat",
                 messages: [
                     { role: "system", content: `
-                        Eres un Router de Contexto.
-                        Contexto anterior (JSON): ${JSON.stringify(lastSearchContext)}
+                        Eres un Router de Contexto y Memoria.
                         
-                        Instrucciones:
-                        1. Si la pregunta del usuario ("${query}") es de seguimiento (ej: dirección, horario, repite nombre, ¿es caro?), responde la duda usando SOLO el contexto.
-                        2. Si es un tema nuevo o diferente, responde ÚNICAMENTE la palabra: SEARCH_GOOGLE.
+                        SITUACIÓN ANTERIOR:
+                        1. Se encontraron estos datos: ${JSON.stringify(lastSearchContext)}
+                        2. TU RECOMENDACIÓN FUE: "${lastAiResponse}"  <-- IMPORTANTE
+                        
+                        INPUT DEL USUARIO AHORA: "${query}"
+
+                        INSTRUCCIONES:
+                        1. Si el usuario pregunta detalles sobre TU RECOMENDACIÓN (ej: "repítelo", "¿cómo se llama?", "¿dónde queda?", "horario"), responde usando los datos del JSON que correspondan a ese lugar específico.
+                        2. Si es un tema nuevo, responde ÚNICAMENTE: SEARCH_GOOGLE.
                     `},
                     { role: "user", content: query }
                 ],
-                max_tokens: 60
+                max_tokens: 80
             });
 
             const decision = response.choices[0].message.content.trim();
@@ -191,7 +197,6 @@ app.post('/api/search', async (req, res) => {
         }
     }
 
-    // Si no hay memoria, buscamos directo
     performSearch(query, lat, lon, res);
 });
 
@@ -209,5 +214,5 @@ io.on('connection', (socket) => {
 const PORT = 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 SERVIDOR ACTIVO EN: http://${ip.address()}:${PORT}`);
-  console.log("🤖 IA: DeepSeek V3 | 🗺️ Mapa: SerpApi");
+  console.log("🤖 IA: DeepSeek V3 + Memoria Contextual");
 });
