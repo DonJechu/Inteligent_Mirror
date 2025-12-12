@@ -1,34 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import useJarvisVoice from './useJarvisVoice';
-
-export const WIDGET_REGISTRY = {
-  time: { id: 'time', name: 'Reloj Maestro', icon: '🕐', category: 'SISTEMA', priority: 1, locked: true },
-  weather: { id: 'weather', name: 'Atmósfera', icon: '☀️', category: 'AMBIENTE', priority: 2 },
-  search: { id: 'search', name: 'Jarvis AI', icon: '🎙️', category: 'INTELIGENCIA', priority: 0, visible: false },
-  status: { id: 'status', name: 'Sistemas', icon: '📶', category: 'SISTEMA', priority: 3 },
-  news: { id: 'news', name: 'Feed Global', icon: '📰', category: 'INFO', priority: 4 },
-  music: { id: 'music', name: 'Audio', icon: '🎵', category: 'MEDIA', priority: 5, isDynamic: true },
-  notifications: { id: 'notifications', name: 'Centro de Mensajes', icon: '💬', category: 'COMUNICACIÓN', priority: 6, isDynamic: true },
-  calendar: { id: 'calendar', name: 'Agenda Diaria', icon: '📅', category: 'PRODUCTIVIDAD', priority: 7, locked: true },
-  mail: { id: 'mail', name: 'Buzón Prioritario', icon: '✉️', category: 'PRODUCTIVIDAD', priority: 8 },
-};
-
-export const PRESETS = {
-  default: {
-    time: { x: 50, y: 50, visible: true, scale: 1.5 },
-    weather: { x: 20, y: 20, visible: true, scale: 1 },
-    status: { x: 90, y: 5, visible: true, scale: 0.9 },
-    news: { x: 50, y: 85, visible: true, scale: 1 },
-    music: { x: 80, y: 80, visible: true, scale: 1 },
-    notifications: { x: 85, y: 50, visible: true, scale: 1, items: [] },
-    calendar: { x: 20, y: 50, visible: true, scale: 1, events: [] },
-    mail: { x: 20, y: 80, visible: true, scale: 1, emails: [] },
-    search: { x: 50, y: 30, visible: false, scale: 1, query: '', result: '' }
-  }
-};
-
-const DEFAULT_CONFIG = { dayStart: 6, nightStart: 19, theme: 'stark', opacity: 1, scale: 1 };
+import { WIDGET_REGISTRY, PRESETS, DEFAULT_CONFIG } from '../config/constants';
 
 // SONIDO
 const playTechSound = (type) => {
@@ -39,14 +12,9 @@ const playTechSound = (type) => {
     osc.connect(gain);
     gain.connect(ctx.destination);
     const now = ctx.currentTime;
-    
-    if (type === 'complete') {
-      osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); gain.gain.setValueAtTime(0.1, now); osc.start(now); osc.stop(now + 0.8);
-    } else if (type === 'notification') {
-      osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3);
-    } else if (type === 'swipe') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3);
-    }
+    if (type === 'complete') { osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); gain.gain.setValueAtTime(0.1, now); osc.start(now); osc.stop(now + 0.8); } 
+    else if (type === 'notification') { osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3); } 
+    else if (type === 'swipe') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3); }
   } catch (e) {}
 };
 
@@ -72,24 +40,17 @@ const useSmartMirrorLogic = () => {
   const [hoveredWidget, setHoveredWidget] = useState(null);
 
   const [widgets, setWidgets] = useState(() => {
-    try {
-      const saved = localStorage.getItem('jarvis_mirror_config_v2'); 
-      if (saved) return { ...PRESETS.default, ...JSON.parse(saved) };
-    } catch (e) { }
+    try { const saved = localStorage.getItem('jarvis_mirror_config_v2'); if (saved) return { ...PRESETS.default, ...JSON.parse(saved) }; } catch (e) { }
     return PRESETS.default;
   });
 
   const [config, setConfig] = useState(() => {
-    try {
-      const saved = localStorage.getItem('jarvis_mirror_settings_v2');
-      if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
-    } catch (e) { }
+    try { const saved = localStorage.getItem('jarvis_mirror_settings_v2'); if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) }; } catch (e) { }
     return DEFAULT_CONFIG;
   });
 
-  // RESET TOTAL
   const resetToFactory = () => {
-      if(confirm("¿Reiniciar todo?")) {
+      if(confirm("¿Reiniciar configuración de fábrica?")) {
           localStorage.removeItem('jarvis_mirror_config_v2');
           localStorage.removeItem('jarvis_mirror_settings_v2');
           setWidgets(PRESETS.default);
@@ -100,6 +61,7 @@ const useSmartMirrorLogic = () => {
 
   useJarvisVoice({ setWidgets, setIsStandby, setBootPhase, playTechSound, searchWidgetDefault: WIDGET_REGISTRY.search });
 
+  // REFS
   const lastActivityRef = useRef(Date.now());
   const frameCountRef = useRef(0);
   const isStandbyRef = useRef(false);
@@ -123,6 +85,7 @@ const useSmartMirrorLogic = () => {
   useEffect(() => { focusModeRef.current = focusMode; }, [focusMode]);
   useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
 
+  // SOCKETS
   useEffect(() => {
     const newSocket = io('http://localhost:3001');
     newSocket.on('new-notification', (notif) => {
@@ -136,7 +99,6 @@ const useSmartMirrorLogic = () => {
     newSocket.on('update-calendar', (realEvents) => setWidgets(prev => ({ ...prev, calendar: { ...(prev.calendar || WIDGET_REGISTRY.calendar), visible: true, events: realEvents } })));
     newSocket.on('update-mail', (realEmails) => setWidgets(prev => ({ ...prev, mail: { ...(prev.mail || WIDGET_REGISTRY.mail), visible: true, emails: realEmails } })));
     newSocket.on('update-music', (track) => setWidgets(prev => ({ ...prev, music: { ...(prev.music || WIDGET_REGISTRY.music), visible: true, track: track } })));
-    setSocket(newSocket);
     return () => newSocket.close();
   }, []);
 
