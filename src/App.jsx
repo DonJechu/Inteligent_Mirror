@@ -1,464 +1,302 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Wifi, Battery, Sun, X, Settings, Music as MusicIcon, EyeOff, Loader2, Moon, Plus, Minus, RotateCcw, Power, Check, Palette, Maximize, Calendar, Mail, Clock, CloudRain, Wind, Disc } from 'lucide-react';
+import { Wifi, Battery, Sun, X, Settings, Music as MusicIcon, EyeOff, Loader2, Moon, Plus, Minus, RotateCcw, Power, Check, Palette, Maximize, Calendar, Mail, Clock, CloudRain, Disc, AlertTriangle } from 'lucide-react';
 import useSmartMirrorLogic, { WIDGET_REGISTRY } from './useSmartMirrorLogic';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-// UTILS
-const cn = (...inputs) => twMerge(clsx(inputs));
 
 // ==========================================
-// 🎨 DEFINICIÓN DE TEMAS (PERFILES)
+// 🎨 DEFINICIÓN DE TEMAS
 // ==========================================
 const THEMES = {
   stark: {
     name: 'J.A.R.V.I.S.',
     font: 'font-mono',
     bg: 'bg-black',
-    accent: 'text-cyan-400',
+    textMain: 'text-white',
+    textAccent: 'text-cyan-400',
     border: 'border-cyan-500/50',
-    panel: 'bg-cyan-950/10 backdrop-blur-md border border-cyan-500/30',
-    glow: 'shadow-[0_0_20px_rgba(34,211,238,0.2)]',
-    shape: 'rounded-sm',
-    iconAnim: 'animate-pulse',
-    cursor: '#06b6d4'
+    panel: 'bg-cyan-950/20 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]',
+    cursor: '#06b6d4',
+    shape: 'rounded-sm'
   },
   minimal: {
-    name: 'Pure',
-    font: 'font-sans tracking-tight',
-    bg: 'bg-zinc-950', // Casi negro, muy elegante
-    accent: 'text-white',
+    name: 'Clean',
+    font: 'font-sans',
+    bg: 'bg-zinc-950',
+    textMain: 'text-zinc-100',
+    textAccent: 'text-white',
     border: 'border-white/10',
-    panel: 'bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl',
-    glow: 'shadow-none',
-    shape: 'rounded-[2rem]',
-    iconAnim: '',
-    cursor: '#ffffff'
+    panel: 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl',
+    cursor: '#ffffff',
+    shape: 'rounded-[2rem]'
   },
   cyber: {
-    name: 'Night City',
-    font: 'font-mono uppercase italic',
+    name: 'Cyberpunk',
+    font: 'font-mono italic',
     bg: 'bg-slate-900',
-    accent: 'text-pink-500',
+    textMain: 'text-pink-50',
+    textAccent: 'text-pink-500',
     border: 'border-pink-500',
     panel: 'bg-slate-900/80 border-l-4 border-pink-500 shadow-[5px_5px_0px_rgba(0,0,0,0.5)]',
-    glow: 'drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]',
-    shape: 'rounded-none skew-x-[-10deg]', // Forma inclinada
-    iconAnim: 'animate-glitch',
-    cursor: '#ec4899'
+    cursor: '#ec4899',
+    shape: 'rounded-none skew-x-[-5deg]'
   },
   zen: {
-    name: 'Harmony',
+    name: 'Zen',
     font: 'font-serif',
-    bg: 'bg-[#1a1816]', // Café muy oscuro
-    accent: 'text-amber-200',
+    bg: 'bg-[#1c1917]',
+    textMain: 'text-stone-200',
+    textAccent: 'text-amber-200',
     border: 'border-amber-900/30',
-    panel: 'bg-[#2a2622]/60 backdrop-blur-sm border border-amber-900/20',
-    glow: 'shadow-[0_0_30px_rgba(251,191,36,0.1)]',
-    shape: 'rounded-[3rem] rounded-tl-none', // Forma orgánica
-    iconAnim: 'animate-float',
-    cursor: '#fbbf24'
+    panel: 'bg-[#292524]/60 backdrop-blur-sm border border-amber-900/20 shadow-lg',
+    cursor: '#fbbf24',
+    shape: 'rounded-tl-[2rem] rounded-br-[2rem]'
   }
 };
 
-// ==========================================
-// 🧩 WIDGETS INTELIGENTES
-// ==========================================
-
 const WidgetContainer = ({ children, theme, className, ...props }) => (
-  <motion.div 
-    initial={{ opacity: 0, scale: 0.9 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.9 }}
-    className={cn(theme.panel, theme.shape, "p-6 relative overflow-hidden transition-colors duration-500", className)}
-    {...props}
-  >
+  <div className={`${theme.panel} ${theme.shape} p-6 relative transition-all duration-300 ${className}`} {...props}>
     {children}
-    {/* Decoración extra para STARK */}
     {theme.name === 'J.A.R.V.I.S.' && (
       <>
         <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan-400" />
         <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-400" />
       </>
     )}
-  </motion.div>
+  </div>
 );
 
 const WIDGET_COMPONENTS = {
   time: ({ data, theme, formatTime, formatDate }) => (
-    <div className={cn("text-center transition-all", data.isDragging ? "opacity-50" : "")}>
-      <motion.div 
-        className={cn("text-8xl font-light leading-none", theme.accent, theme.name === 'Night City' && "text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-yellow-500")}
-      >
-        {formatTime(data.time)}
-      </motion.div>
-      <div className={cn("text-xl mt-2 opacity-80 uppercase tracking-widest", theme.font)}>
-        {formatDate(data.time)}
-      </div>
+    <div className={`text-center transition-all duration-300 ${data.isDragging ? "opacity-50 scale-110" : ""}`}>
+      <div className={`text-8xl font-light leading-none ${theme.textAccent} drop-shadow-lg`}>{formatTime(data.time)}</div>
+      <div className={`text-xl mt-2 opacity-80 uppercase tracking-widest ${theme.font} ${theme.textMain}`}>{formatDate(data.time)}</div>
     </div>
   ),
-
   weather: ({ data, theme }) => (
     <WidgetContainer theme={theme} className="flex items-center gap-6 min-w-[280px]">
-      <div className={cn("relative", theme.name === 'Harmony' && "animate-float")}>
-        <Sun className={cn("w-16 h-16", theme.iconAnim, theme.accent)} strokeWidth={1.5} />
-        {theme.name === 'Pure' && <CloudRain className="absolute -bottom-2 -right-2 w-8 h-8 text-blue-300" />}
-      </div>
+      <Sun className={`w-16 h-16 ${theme.textAccent} animate-spin-slow`} strokeWidth={1.5} />
       <div>
-        <div className={cn("text-5xl font-light", theme.accent)}>{Math.round(data.temp)}°</div>
-        <div className={cn("text-xs opacity-60 uppercase tracking-wider", theme.font)}>{data.condition}</div>
+        <div className={`text-5xl font-light ${theme.textMain}`}>{Math.round(data.temp)}°</div>
+        <div className={`text-xs opacity-60 uppercase tracking-wider ${theme.textMain}`}>{data.condition}</div>
       </div>
     </WidgetContainer>
   ),
-
-  search: ({ data, theme }) => (
-    <motion.div 
-      initial={{ y: 50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className={cn(theme.panel, theme.shape, "max-w-2xl mx-auto p-8 flex flex-col items-center text-center backdrop-blur-xl border-t-2", theme.border)}
-    >
-      <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6 relative", theme.bg)}>
-        <div className={cn("absolute inset-0 rounded-full animate-ping opacity-20", theme.bg === 'bg-black' ? 'bg-cyan-500' : 'bg-white')}></div>
-        <div className={cn("w-3 h-12 rounded-full absolute animate-spin-slow", theme.accent === 'text-cyan-400' ? 'bg-cyan-500' : 'bg-gray-500')}></div>
-      </div>
-      <h2 className={cn("text-3xl mb-2", theme.font, theme.accent)}>
-        {data.result === 'Escuchando...' ? 'Escuchando...' : 'Analizando...'}
-      </h2>
-      <p className="text-xl text-white/80 italic">"{data.query}"</p>
-      {data.result && data.result !== 'Escuchando...' && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-6 pt-6 border-t border-white/10 w-full text-lg leading-relaxed"
-        >
-          {data.result}
-        </motion.div>
-      )}
-    </motion.div>
-  ),
-
   status: ({ theme }) => (
     <WidgetContainer theme={theme} className="px-4 py-2 flex gap-6">
-      <div className="flex items-center gap-2">
-        <Wifi size={18} className={theme.accent} />
-        <span className="text-xs font-mono">ONLINE</span>
-      </div>
+      <div className="flex items-center gap-2"><Wifi size={18} className={theme.textAccent} /><span className={`text-xs ${theme.textMain}`}>ONLINE</span></div>
       <div className="w-px h-4 bg-white/10" />
-      <div className="flex items-center gap-2">
-        <Battery size={18} className="text-green-400" />
-        <span className="text-xs font-mono">100%</span>
-      </div>
+      <div className="flex items-center gap-2"><Battery size={18} className="text-green-400" /><span className={`text-xs ${theme.textMain}`}>100%</span></div>
     </WidgetContainer>
   ),
-
-  news: ({ theme }) => (
-    <WidgetContainer theme={theme} className="w-96">
-      <div className="flex items-center justify-between mb-3">
-        <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full", theme.name === 'Night City' ? 'bg-yellow-400 text-black' : 'bg-red-500 text-white')}>
-          BREAKING
-        </span>
-        <span className="text-[10px] opacity-50">CNN GLOBAL</span>
+  search: ({ data, theme }) => (
+    <div className={`${theme.panel} ${theme.shape} max-w-2xl mx-auto p-8 flex flex-col items-center text-center backdrop-blur-xl border-t-2 ${theme.border}`}>
+      <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 relative animate-pulse ${theme.textAccent} border border-current`}>
+        <div className={`w-2 h-10 rounded-full bg-current`} />
       </div>
-      <p className={cn("text-lg leading-snug", theme.font)}>
-        "Inteligencia Artificial revoluciona la domótica en 2025..."
-      </p>
-    </WidgetContainer>
-  ),
-
-  music: ({ theme }) => (
-    <WidgetContainer theme={theme} className="flex items-center gap-4 w-80">
-      <div className={cn("w-14 h-14 rounded-full flex items-center justify-center relative overflow-hidden", theme.accent === 'text-white' ? 'bg-white/20' : 'bg-black/50')}>
-        <Disc className={cn("w-8 h-8 animate-spin-slow", theme.accent)} />
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/10" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className={cn("text-sm font-bold truncate", theme.accent)}>Midnight City</div>
-        <div className="text-xs opacity-60 truncate">M83 • Hurry Up, We're Dreaming</div>
-        <div className="h-1 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
-          <div className={cn("h-full w-2/3 rounded-full", theme.name === 'Pure' ? 'bg-white' : 'bg-current text-cyan-500')} />
+      <h2 className={`text-3xl mb-2 ${theme.font} ${theme.textAccent}`}>
+        {data.result === 'Escuchando...' ? 'Escuchando...' : 'Procesando...'}
+      </h2>
+      <p className={`text-xl italic opacity-80 ${theme.textMain}`}>"{data.query}"</p>
+      {data.result && data.result !== 'Escuchando...' && (
+        <div className={`mt-6 pt-6 border-t border-white/10 w-full text-lg leading-relaxed ${theme.textMain}`}>
+          {data.result}
         </div>
-      </div>
-    </WidgetContainer>
-  ),
-
-  notifications: ({ data, theme }) => (
-    <div className="flex flex-col gap-3 w-80">
-      <AnimatePresence>
-        {data.items?.map((notif, index) => (
-          <WidgetContainer 
-            key={notif.id || index}
-            theme={theme}
-            className="py-3 px-4 flex items-start gap-3 backdrop-blur-xl"
-          >
-            <div className={cn("p-2 rounded-full shrink-0", theme.name === 'J.A.R.V.I.S.' ? 'bg-cyan-900/30' : 'bg-white/10')}>
-              {notif.app === 'WhatsApp' ? <div className="text-green-400 font-bold">WA</div> : <Mail size={14} />}
-            </div>
-            <div>
-              <div className="flex justify-between items-baseline w-full">
-                <span className={cn("text-xs font-bold", theme.accent)}>{notif.app}</span>
-                <span className="text-[9px] opacity-40">{notif.time}</span>
-              </div>
-              <p className="text-sm leading-tight mt-1 opacity-90">{notif.message}</p>
-            </div>
-          </WidgetContainer>
-        ))}
-      </AnimatePresence>
+      )}
     </div>
   ),
-
+  news: ({ theme }) => (
+    <WidgetContainer theme={theme} className="w-96">
+      <div className="flex justify-between mb-3"><span className="text-[10px] bg-red-500 px-2 py-1 rounded-full text-white font-bold">LIVE</span><span className={`text-[10px] ${theme.textMain}`}>CNN</span></div>
+      <p className={`text-lg leading-snug ${theme.textMain}`}>"IA Revoluciona el mercado de espejos..."</p>
+    </WidgetContainer>
+  ),
+  music: ({ theme, data }) => (
+    <WidgetContainer theme={theme} className="flex items-center gap-4 w-80">
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center bg-white/10 ${theme.textAccent}`}><Disc className="w-8 h-8 animate-spin-slow" /></div>
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm font-bold truncate ${theme.textAccent}`}>{data.track?.title || "Sin música"}</div>
+        <div className={`text-xs opacity-60 truncate ${theme.textMain}`}>{data.track?.artist || "Esperando..."}</div>
+      </div>
+    </WidgetContainer>
+  ),
+  notifications: ({ data, theme }) => (
+    <div className="flex flex-col gap-3 w-80">
+      {data.items?.map((notif, i) => (
+        <WidgetContainer key={i} theme={theme} className="py-3 px-4 flex items-start gap-3">
+          <div className="p-2 rounded-full bg-white/10"><Mail size={14} className={theme.textAccent} /></div>
+          <div>
+            <div className="flex justify-between w-full"><span className={`text-xs font-bold ${theme.textAccent}`}>{notif.app}</span><span className={`text-[9px] opacity-40 ${theme.textMain}`}>{notif.time}</span></div>
+            <p className={`text-sm opacity-90 ${theme.textMain}`}>{notif.message}</p>
+          </div>
+        </WidgetContainer>
+      ))}
+    </div>
+  ),
   calendar: ({ data, theme }) => (
-    <WidgetContainer theme={theme} className="w-80 group hover:scale-105 transition-transform">
-      <div className={cn("flex items-center justify-between mb-4 border-b pb-2", theme.border)}>
-        <div className="flex items-center gap-2">
-          <Calendar size={18} className={theme.accent} />
-          <span className={cn("text-xs font-bold tracking-widest", theme.font)}>AGENDA</span>
-        </div>
-        <span className={cn("text-xs px-2 py-0.5 rounded", theme.name === 'Pure' ? 'bg-black text-white' : 'bg-white/10')}>HOY</span>
+    <WidgetContainer theme={theme} className="w-80 group hover:scale-105 transition-transform cursor-pointer">
+      <div className={`flex justify-between mb-4 border-b pb-2 ${theme.border}`}>
+        <div className="flex gap-2"><Calendar size={18} className={theme.textAccent} /><span className={`text-xs font-bold ${theme.textMain}`}>AGENDA</span></div>
+        <span className="text-xs bg-white/10 px-2 rounded text-white">HOY</span>
       </div>
       <div className="space-y-4">
         {data.events?.slice(0, 3).map((evt, i) => (
           <div key={i} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <span className={cn("text-xs font-bold", theme.accent)}>{evt.time.split(':')[0]}</span>
-              <div className={cn("w-0.5 h-full mt-1 bg-gradient-to-b from-current to-transparent opacity-20", theme.accent)} />
-            </div>
-            <div>
-              <div className="text-sm font-medium">{evt.title}</div>
-              <div className="text-[10px] opacity-50">Sala de conferencias B</div>
-            </div>
+            <div className="flex flex-col items-center"><span className={`text-xs font-bold ${theme.textAccent}`}>{evt.time.split(':')[0]}</span><div className="w-0.5 h-full bg-white/20" /></div>
+            <div><div className={`text-sm font-medium ${theme.textMain}`}>{evt.title}</div><div className={`text-[10px] opacity-50 ${theme.textMain}`}>Sala B</div></div>
           </div>
         ))}
-        {(!data.events || data.events.length === 0) && <div className="text-xs opacity-50 italic">Tiempo libre...</div>}
+        {!data.events?.length && <div className={`text-xs opacity-50 ${theme.textMain}`}>Sin eventos próximos</div>}
       </div>
+      <div className={`mt-2 text-[9px] text-center opacity-0 group-hover:opacity-100 transition-opacity animate-pulse ${theme.textAccent}`}>PELLIZCA PARA ABRIR</div>
     </WidgetContainer>
   ),
-
   mail: ({ data, theme }) => (
     <WidgetContainer theme={theme} className="w-72">
-      <div className="flex items-center justify-between mb-3">
-        <Mail size={18} className={theme.accent} />
-        <div className="flex -space-x-2">
-          {[1,2,3].map(i => <div key={i} className={cn("w-6 h-6 rounded-full border-2 border-black bg-gray-600 flex items-center justify-center text-[8px]", theme.border)}>{i}</div>)}
-        </div>
-      </div>
+      <div className="flex justify-between mb-3"><Mail size={18} className={theme.textAccent} /><div className="flex -space-x-2 text-[8px]"><div className="w-6 h-6 rounded-full bg-gray-600 border flex items-center justify-center text-white">1</div></div></div>
       <div className="space-y-2">
         {data.emails?.slice(0,2).map((email, i) => (
-          <div key={i} className={cn("p-2 rounded cursor-pointer transition-colors", theme.name === 'Pure' ? 'hover:bg-black/5' : 'hover:bg-white/5')}>
-            <div className="text-xs font-bold truncate">{email.from}</div>
-            <div className="text-[10px] opacity-70 truncate">{email.subject}</div>
-          </div>
+          <div key={i} className="p-2 rounded hover:bg-white/5"><div className={`text-xs font-bold ${theme.textMain}`}>{email.from}</div><div className={`text-[10px] opacity-70 ${theme.textMain}`}>{email.subject}</div></div>
         ))}
       </div>
     </WidgetContainer>
   )
 };
 
-// ==========================================
-// 🚀 COMPONENTE PRINCIPAL
-// ==========================================
+const FullAgendaView = ({ calendarData, theme, scrollRef }) => (
+    <div className="absolute inset-0 z-40 flex items-center justify-center p-20 bg-black/95 backdrop-blur-xl animate-[fadeIn_0.5s_ease-out]">
+        <div className="w-full h-full max-w-5xl flex flex-col">
+            <div className={`flex items-end justify-between border-b-2 ${theme.border} pb-6 mb-10`}>
+                <div><h1 className={`text-6xl font-thin tracking-tighter ${theme.textMain}`}>AGENDA</h1><p className={`text-xl ${theme.textAccent} tracking-[0.5em] uppercase mt-2`}>VISTA DETALLADA</p></div>
+                <div className="text-right"><div className={`text-4xl ${theme.font} ${theme.textMain}`}>{new Date().toLocaleDateString('es-MX', {weekday:'long'})}</div><div className={`text-xl opacity-60 ${theme.textMain}`}>{new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long'})}</div></div>
+            </div>
+            <div ref={scrollRef} className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 overflow-y-auto content-start pb-20 no-scrollbar">
+                {calendarData.events?.length > 0 ? calendarData.events.map((evt, i) => (
+                    <div key={i} className={`p-6 rounded-2xl border ${theme.border} bg-white/5 flex flex-col justify-between hover:bg-white/10 transition-colors`}>
+                        <div>
+                            <div className={`text-xs font-bold px-2 py-1 rounded w-max mb-3 ${evt.type === 'personal' ? 'bg-green-500/20 text-green-300' : 'bg-blue-500/20 text-blue-300'}`}>{evt.type || 'REUNIÓN'}</div>
+                            <h3 className={`text-3xl font-light mb-2 leading-tight ${theme.textMain}`}>{evt.title}</h3>
+                        </div>
+                        <div className={`text-2xl ${theme.font} ${theme.textAccent} flex items-center gap-3`}><Clock size={24} /> {evt.time}</div>
+                    </div>
+                )) : <div className="col-span-2 flex flex-col items-center justify-center h-full opacity-30 space-y-4"><Calendar size={64} className={theme.textMain} /><div className={`text-2xl italic ${theme.textMain}`}>No hay misiones programadas.</div></div>}
+            </div>
+            <div className={`mt-10 pt-6 border-t ${theme.border} flex justify-between items-center text-xs opacity-50 ${theme.textMain}`}><span className="animate-pulse">PELLIZCA Y ARRASTRA PARA SCROLL • CLICK PARA SALIR</span><span>MIRRORLINK SYNC ACTIVE</span></div>
+        </div>
+    </div>
+);
+
 const SmartMirror = () => {
   const {
     time, weather, handDetected, faceDetected, isStandby, bootPhase, widgets, 
     handPosition, isGrabbing, hoveredWidget, showSettings, setShowSettings, videoRef, 
-    handleWidgetMouseDown, toggleWidget, config, updateConfig, isDayTime, applyPreset,
-    focusMode, sessionComplete, focusTime, viewMode, agendaScrollRef
+    handleWidgetMouseDown, toggleWidget, config, updateConfig, focusMode, sessionComplete, focusTime, 
+    interactionProgress, interactionType, resetToFactory, viewMode, agendaScrollRef
   } = useSmartMirrorLogic();
 
   const activeTheme = THEMES[config.theme] || THEMES.stark;
-
   const formatTime = (date) => date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
   const formatDate = (date) => date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  if (bootPhase === 'booting') return (
-    <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-cyan-500 font-mono">
-      <Loader2 className="w-16 h-16 animate-spin mb-8" />
-      <div className="text-xl tracking-[0.5em] animate-pulse">INICIALIZANDO SISTEMA...</div>
-    </div>
-  );
-
-  if (isStandby && bootPhase === 'standby') return (
-    <div className="w-full h-screen bg-black flex items-center justify-center">
-      <div className="text-center opacity-30 animate-pulse">
-        <div className="text-9xl font-thin text-white font-mono">{formatTime(time)}</div>
-      </div>
-    </div>
-  );
+  if (bootPhase === 'booting') return <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-cyan-500 font-mono"><Loader2 className="w-16 h-16 animate-spin mb-8" /><div className="text-xl animate-pulse">REINICIANDO...</div></div>;
+  if (isStandby && bootPhase === 'standby') return <div className="w-full h-screen bg-black flex items-center justify-center"><div className="text-9xl font-thin text-white font-mono opacity-30 animate-pulse">{formatTime(time)}</div></div>;
 
   return (
-    <div 
-      className={cn("relative w-full h-screen overflow-hidden transition-all duration-1000", activeTheme.bg, activeTheme.font, "text-white")}
-      style={{ opacity: config.opacity, transform: `scale(${config.scale})` }}
-    >
+    <div className={`relative w-full h-screen overflow-hidden transition-all duration-1000 ${activeTheme.bg} ${activeTheme.font}`} style={{ opacity: config.opacity, transform: `scale(${config.scale})` }}>
       <video ref={videoRef} autoPlay playsInline className="hidden" />
-
-      {/* FONDO ANIMADO */}
+      
       <div className="absolute inset-0 pointer-events-none">
-        {config.theme === 'stark' && <div className="absolute inset-0 bg-scanlines opacity-10 pointer-events-none" />}
-        {config.theme === 'cyber' && <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(236,72,153,0.1),_transparent_70%)] animate-pulse" />}
-        {config.theme === 'zen' && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(251,191,36,0.05),_transparent_50%)]" />}
+        {config.theme === 'stark' && <div className="absolute inset-0 bg-scanlines opacity-10" />}
+        {config.theme === 'cyber' && <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/20 to-transparent animate-pulse" />}
       </div>
 
-      {/* CURSOR GESTUAL */}
       {handDetected && (
-        <motion.div 
-          className="absolute z-50 pointer-events-none"
-          animate={{ x: `${handPosition.x}vw`, y: `${handPosition.y}vh`, scale: isGrabbing ? 0.5 : 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          style={{ x: '-50%', y: '-50%' }} 
-        >
-          <div 
-            className="w-6 h-6 rounded-full border-2 border-white backdrop-blur-sm" 
-            style={{ backgroundColor: activeTheme.cursor, boxShadow: `0 0 20px ${activeTheme.cursor}` }} 
-          />
-        </motion.div>
+        <div className="absolute z-50 pointer-events-none transition-transform duration-100 ease-out" 
+             style={{ left: `${handPosition.x}%`, top: `${handPosition.y}%`, transform: `translate(-50%, -50%) scale(${isGrabbing ? 0.8 : 1})` }}>
+          <div className="relative">
+            <div className="w-6 h-6 rounded-full border-2 border-white backdrop-blur-sm" style={{ backgroundColor: activeTheme.cursor, boxShadow: `0 0 20px ${activeTheme.cursor}` }} />
+            {interactionProgress > 0 && (
+              <svg className="absolute top-[-10px] left-[-10px] w-[44px] h-[44px] rotate-[-90deg]">
+                <circle cx="22" cy="22" r="20" stroke="white" strokeWidth="4" fill="transparent" strokeOpacity="0.2" />
+                <circle cx="22" cy="22" r="20" stroke={activeTheme.cursor} strokeWidth="4" fill="transparent" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * interactionProgress) / 100} />
+              </svg>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* WIDGETS */}
-      <AnimatePresence>
-        {!focusMode && Object.entries(widgets).map(([key, widget]) => {
+      {/* WIDGETS CON POSICIONAMIENTO CORREGIDO */}
+      {!focusMode && viewMode === 'dashboard' && Object.entries(widgets).map(([key, widget]) => {
           if (!widget.visible) return null;
           const Component = WIDGET_COMPONENTS[key];
-          
           return (
-            <motion.div
+            <div
               key={key}
-              // 🔥 SOLUCIÓN DEFINITIVA DE POSICIONAMIENTO
-              // 1. top-0 left-0: Anclamos el widget al origen 0,0 del contenedor padre.
-              // 2. x/y (vw/vh): Movemos el widget a la posición deseada.
-              // 3. xPercent/yPercent (-50): Centramos el widget sobre esa coordenada.
-              initial={{ opacity: 0, scale: 0.8, x: `${widget.x}vw`, y: `${widget.y}vh`, xPercent: -50, yPercent: -50 }}
-              animate={{ 
-                opacity: 1, 
-                scale: widget.scale || 1, 
-                x: `${widget.x}vw`, 
-                y: `${widget.y}vh`, 
-                xPercent: -50, 
-                yPercent: -50 
-              }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 80, damping: 20 }}
-              className={cn("absolute top-0 left-0", widget.isDragging ? "z-50 cursor-grabbing scale-110" : "z-10 cursor-grab")}
+              className={`absolute transition-all duration-300 ease-out ${widget.isDragging ? 'z-50 cursor-grabbing scale-110' : 'z-10 cursor-grab'}`}
+              // 🔥 AQUÍ ESTÁ EL TRUCO: left/top en % + translate(-50%, -50%)
+              style={{ left: `${widget.x}%`, top: `${widget.y}%`, transform: 'translate(-50%, -50%) scale(' + (widget.scale || 1) + ')' }}
               onMouseDown={(e) => handleWidgetMouseDown(e, key)}
             >
-              <div className={cn("transition-all duration-300", hoveredWidget === key ? "scale-105 brightness-110" : "")} style={hoveredWidget === key ? { boxShadow: activeTheme.glow } : {}}>
+              <div className={`transition-all duration-300 ${hoveredWidget === key ? "scale-105 brightness-110" : ""}`}>
                 {Component && <Component data={{...widget, time, temp: weather.temp, condition: weather.condition}} theme={activeTheme} formatTime={formatTime} formatDate={formatDate} />}
               </div>
-            </motion.div>
+            </div>
           );
-        })}
-      </AnimatePresence>
+      })}
 
-      {/* MODO FOCUS */}
-      <AnimatePresence>
-        {focusMode && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/95 z-40 flex flex-col items-center justify-center"
-          >
-            <div className={cn("w-[500px] h-[500px] rounded-full border-4 flex items-center justify-center relative", activeTheme.border)}>
-              <motion.div 
-                animate={{ rotate: 360 }} 
-                transition={{ duration: sessionComplete ? 2 : 10, repeat: Infinity, ease: "linear" }}
-                className={cn("absolute inset-0 border-t-4 rounded-full", sessionComplete ? "border-green-500" : activeTheme.accent)} 
-              />
+      {viewMode === 'agenda' && <FullAgendaView calendarData={widgets.calendar || { events: [] }} theme={activeTheme} formatTime={formatTime} scrollRef={agendaScrollRef} />}
+
+      {focusMode && (
+          <div className="absolute inset-0 bg-black/95 z-40 flex flex-col items-center justify-center">
+            <div className={`w-[500px] h-[500px] rounded-full border-4 flex items-center justify-center relative ${activeTheme.border}`}>
+              <div className={`absolute inset-0 border-t-4 rounded-full animate-spin-slow ${sessionComplete ? "border-green-500" : activeTheme.textAccent}`} />
               <div className="text-center">
-                {sessionComplete ? (
-                  <div className="text-green-500 text-6xl font-bold">COMPLETADO</div>
-                ) : (
-                  <>
-                    <div className="text-2xl opacity-50 tracking-[1em] mb-4">FOCUS</div>
-                    <div className={cn("text-9xl font-thin tabular-nums", activeTheme.accent)}>
-                      {Math.floor(focusTime/60).toString().padStart(2,'0')}:{(focusTime%60).toString().padStart(2,'0')}
-                    </div>
-                  </>
-                )}
+                {sessionComplete ? <div className="text-green-500 text-6xl font-bold">COMPLETADO</div> : <><div className="text-2xl opacity-50 tracking-[1em] mb-4 text-white">FOCUS</div><div className={`text-9xl font-thin tabular-nums ${activeTheme.textAccent}`}>{Math.floor(focusTime/60).toString().padStart(2,'0')}:{(focusTime%60).toString().padStart(2,'0')}</div></>}
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+      )}
 
-      {/* PANEL AJUSTES */}
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div 
-            initial={{ x: '100%' }} 
-            animate={{ x: 0 }} 
-            exit={{ x: '100%' }}
-            className="absolute right-0 top-0 h-full w-96 bg-black/90 backdrop-blur-xl border-l border-white/10 z-50 p-8 shadow-2xl overflow-y-auto"
-          >
-            <div className="flex justify-between items-center mb-10">
-              <h2 className="text-2xl font-light tracking-widest text-white">AJUSTES</h2>
-              <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X /></button>
-            </div>
-
-            <div className="space-y-10">
-              <section>
-                <h3 className="text-xs text-gray-500 uppercase tracking-widest mb-4">PERFIL VISUAL</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(THEMES).map(([key, theme]) => (
-                    <button
-                      key={key}
-                      onClick={() => updateConfig('theme', key)}
-                      className={cn(
-                        "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300",
-                        config.theme === key 
-                          ? `bg-white/10 ${theme.border} scale-105` 
-                          : "border-transparent hover:bg-white/5"
-                      )}
-                    >
-                      <div className={cn("w-8 h-8 rounded-full", theme.bg === 'bg-white' ? 'bg-white' : theme.bg, theme.border, "border-2")} />
-                      <span className="text-xs font-bold uppercase">{theme.name}</span>
-                    </button>
-                  ))}
+      {showSettings && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={() => setShowSettings(false)}>
+            <div className={`bg-gray-900 border ${activeTheme.border} w-11/12 max-w-6xl p-8 shadow-2xl h-5/6 overflow-y-auto rounded-xl`} onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
+                    <h2 className="text-3xl font-light tracking-widest text-white">AJUSTES DEL SISTEMA</h2>
+                    <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-white/10 rounded-full text-white"><X /></button>
                 </div>
-              </section>
-
-              <section>
-                <h3 className="text-xs text-gray-500 uppercase tracking-widest mb-4">MÓDULOS</h3>
-                <div className="space-y-2">
-                  {Object.values(WIDGET_REGISTRY).map(w => (
-                    <div 
-                      key={w.id} 
-                      onClick={() => toggleWidget(w.id)}
-                      className={cn(
-                        "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border",
-                        widgets[w.id]?.visible ? "bg-white/10 border-white/20" : "border-transparent opacity-50 hover:opacity-100"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{w.icon}</span>
-                        <span className="text-sm font-medium">{w.name}</span>
-                      </div>
-                      {widgets[w.id]?.visible && <Check size={16} className="text-green-400" />}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <div className="space-y-8">
+                        <div>
+                            <h3 className="text-gray-500 text-xs tracking-widest uppercase mb-4">TEMA VISUAL</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                {Object.entries(THEMES).map(([key, theme]) => (
+                                    <button key={key} onClick={() => updateConfig('theme', key)} className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${config.theme === key ? `bg-white/10 ${theme.border}` : "border-gray-800 hover:bg-white/5"}`}>
+                                        <Palette size={24} className={config.theme === key ? theme.textAccent.replace('text-', 'text-') : 'text-gray-500'} />
+                                        <span className="uppercase text-xs font-bold text-white">{theme.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                  ))}
+                    <div className="space-y-8">
+                        <div><h3 className="text-gray-500 text-xs tracking-widest uppercase mb-4">WIDGETS</h3>
+                            <div className="grid grid-cols-2 gap-3">{Object.values(WIDGET_REGISTRY).map(w => (
+                                <div key={w.id} onClick={() => toggleWidget(w.id)} className={`p-3 rounded border flex items-center justify-between cursor-pointer ${widgets[w.id]?.visible ? `bg-blue-500/20 border-blue-500` : 'border-gray-800 opacity-50'}`}>
+                                    <div className="flex items-center gap-3 text-white"><span>{w.icon}</span><span className="text-sm">{w.name}</span></div>
+                                    {widgets[w.id]?.visible && <Check size={14} className="text-blue-400" />}
+                                </div>
+                            ))}</div>
+                        </div>
+                        <div><h3 className="text-gray-500 text-xs tracking-widest uppercase mb-4">PELIGRO</h3>
+                            <button onClick={resetToFactory} className="w-full py-4 border border-red-500 text-red-500 rounded-xl hover:bg-red-500/10 flex items-center justify-center gap-2 font-bold uppercase text-xs tracking-widest"><AlertTriangle size={16}/> RESTAURAR FÁBRICA</button>
+                        </div>
+                    </div>
                 </div>
-              </section>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+      )}
 
-      {/* BOTÓN SETTINGS */}
-      <motion.button 
-        whileHover={{ rotate: 90 }}
-        onClick={() => setShowSettings(true)} 
-        className="absolute top-8 right-8 z-40 p-3 rounded-full bg-black/50 backdrop-blur border border-white/10 text-white/50 hover:text-white hover:border-white/50 transition-colors"
-      >
-        <Settings size={24} />
-      </motion.button>
-
-      {/* STATUS BAR */}
+      <button onClick={() => setShowSettings(true)} className="absolute top-8 right-8 z-40 p-3 rounded-full bg-black/50 border border-white/10 hover:border-white transition-colors"><Settings size={24} className="text-white" /></button>
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 px-6 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 text-[10px] tracking-[0.2em] text-white/30 uppercase">
-        <span className={faceDetected ? "text-green-400" : ""}>VISION</span>
-        <span>•</span>
-        <span className={handDetected ? "text-blue-400" : ""}>GESTURE</span>
-        <span>•</span>
-        <span className={config.theme === 'stark' ? "text-cyan-400" : "text-white"}>{activeTheme.name} OS</span>
+        <span className={faceDetected ? "text-green-400" : ""}>VISION</span>•<span className={handDetected ? "text-blue-400" : ""}>GESTURE</span>•<span className={config.theme === 'stark' ? "text-cyan-400" : "text-white"}>{activeTheme.name} OS</span>
       </div>
     </div>
   );
