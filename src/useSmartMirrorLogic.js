@@ -189,7 +189,7 @@ const useSmartMirrorLogic = () => {
   
   useEffect(() => { let timer = null; if (focusMode && !sessionComplete && focusTime > 0) { timer = setInterval(() => setFocusTime(prev => prev - 1), 1000); } else if (!focusMode) { setFocusTime(1500); setSessionComplete(false); } else if (focusTime === 0 && !sessionComplete) { setSessionComplete(true); playTechSound('complete'); setTimeout(() => { setFocusMode(false); setSessionComplete(false); setFocusTime(1500); }, 5000); } return () => clearInterval(timer); }, [focusMode, focusTime, sessionComplete]);
   
-  useEffect(() => { const p = setInterval(() => { if (isGrabbing || showSettings || isStandby || focusMode) return; let ch = false; const cw = { ...widgetsRef.current }; Object.keys(cw).forEach((kA, i) => { const wA = cw[kA]; if (kA === 'time' || !wA.visible || wA.isDragging) return; let nx = wA.x, ny = wA.y; if (nx < 5) nx += (5 - nx) * 0.1; if (nx > 95) nx += (95 - nx) * 0.1; if (ny < 5) ny += (5 - ny) * 0.1; if (ny > 95) ny += (95 - ny) * 0.1; Object.keys(cw).forEach((kB, j) => { if (i === j) return; const wB = cw[kB]; if (!wB.visible) return; const dx = wA.x - wB.x, dy = wA.y - wB.y, d = Math.sqrt(dx*dx + dy*dy); if (d < 18 && d > 0) { const f = (18 - d) * 0.05; nx += (dx/d)*f; ny += (dy/d)*f; } }); if (Math.abs(nx-wA.x)>0.1 || Math.abs(ny-wA.y)>0.1) { cw[kA] = { ...wA, x: nx, y: ny }; ch = true; } }); if (ch) setWidgets(cw); }, 50); return () => clearInterval(p); }, [isGrabbing, showSettings, isStandby, focusMode]);
+  // 🧹 AQUÍ ESTÁ EL CAMBIO: ELIMINÉ EL BLOQUE DE "FÍSICA FLOTANTE" QUE HACÍA QUE SE MOVIERA TODO
   
   const registerActivity = () => { lastActivityRef.current = Date.now(); if (isStandbyRef.current) { setIsStandby(false); setBootPhase('booting'); setTimeout(() => setBootPhase('active'), 2000); } };
   useEffect(() => { const s = setInterval(() => { if (!focusMode && !isStandbyRef.current && Date.now() - lastActivityRef.current > 15000) { setIsStandby(true); setBootPhase('standby'); } }, 1000); return () => clearInterval(s); }, [focusMode]);
@@ -342,6 +342,7 @@ const useSmartMirrorLogic = () => {
   const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
   const handleWidgetMouseDown = (e, widgetName) => {}; 
 
+  // INICIALIZACIÓN (CÁMARA)
   useEffect(() => {
     if (cameraRef.current || isCameraInitializingRef.current) return;
     isCameraInitializingRef.current = true;
@@ -360,8 +361,7 @@ const useSmartMirrorLogic = () => {
             return;
         }
 
-        // 🛠️ AQUÍ ESTÁ EL ARREGLO: USAMOS LA ÚLTIMA VERSIÓN
-        // Al quitar el número de versión, usamos "latest" tanto para el JS como para el WASM
+        // 🛠️ CORRECCIÓN: Usamos versiones "latest" para evitar conflicto JS/WASM
         handsRef.current = new window.Hands({ 
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` 
         });

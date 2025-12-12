@@ -63,12 +63,11 @@ const THEMES = {
 };
 
 // ==========================================
-// 🧩 WIDGETS INTELIGENTES (Se adaptan al tema)
+// 🧩 WIDGETS INTELIGENTES
 // ==========================================
 
 const WidgetContainer = ({ children, theme, className, ...props }) => (
   <motion.div 
-    layout
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.9 }}
@@ -90,7 +89,6 @@ const WIDGET_COMPONENTS = {
   time: ({ data, theme, formatTime, formatDate }) => (
     <div className={cn("text-center transition-all", data.isDragging ? "opacity-50" : "")}>
       <motion.div 
-        layoutId="clock-time"
         className={cn("text-8xl font-light leading-none", theme.accent, theme.name === 'Night City' && "text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-yellow-500")}
       >
         {formatTime(data.time)}
@@ -105,7 +103,6 @@ const WIDGET_COMPONENTS = {
     <WidgetContainer theme={theme} className="flex items-center gap-6 min-w-[280px]">
       <div className={cn("relative", theme.name === 'Harmony' && "animate-float")}>
         <Sun className={cn("w-16 h-16", theme.iconAnim, theme.accent)} strokeWidth={1.5} />
-        {/* Decoración climática */}
         {theme.name === 'Pure' && <CloudRain className="absolute -bottom-2 -right-2 w-8 h-8 text-blue-300" />}
       </div>
       <div>
@@ -273,7 +270,6 @@ const SmartMirror = () => {
   const formatTime = (date) => date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
   const formatDate = (date) => date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // PANTALLA DE REINICIO
   if (bootPhase === 'booting') return (
     <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-cyan-500 font-mono">
       <Loader2 className="w-16 h-16 animate-spin mb-8" />
@@ -281,7 +277,6 @@ const SmartMirror = () => {
     </div>
   );
 
-  // PANTALLA STANDBY
   if (isStandby && bootPhase === 'standby') return (
     <div className="w-full h-screen bg-black flex items-center justify-center">
       <div className="text-center opacity-30 animate-pulse">
@@ -297,7 +292,7 @@ const SmartMirror = () => {
     >
       <video ref={videoRef} autoPlay playsInline className="hidden" />
 
-      {/* FONDO ANIMADO SEGÚN TEMA */}
+      {/* FONDO ANIMADO */}
       <div className="absolute inset-0 pointer-events-none">
         {config.theme === 'stark' && <div className="absolute inset-0 bg-scanlines opacity-10 pointer-events-none" />}
         {config.theme === 'cyber' && <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(236,72,153,0.1),_transparent_70%)] animate-pulse" />}
@@ -310,7 +305,7 @@ const SmartMirror = () => {
           className="absolute z-50 pointer-events-none"
           animate={{ x: `${handPosition.x}vw`, y: `${handPosition.y}vh`, scale: isGrabbing ? 0.5 : 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          style={{ translateX: '-50%', translateY: '-50%' }}
+          style={{ x: '-50%', y: '-50%' }} 
         >
           <div 
             className="w-6 h-6 rounded-full border-2 border-white backdrop-blur-sm" 
@@ -319,7 +314,7 @@ const SmartMirror = () => {
         </motion.div>
       )}
 
-      {/* UI PRINCIPAL */}
+      {/* WIDGETS */}
       <AnimatePresence>
         {!focusMode && Object.entries(widgets).map(([key, widget]) => {
           if (!widget.visible) return null;
@@ -328,14 +323,23 @@ const SmartMirror = () => {
           return (
             <motion.div
               key={key}
-              layout
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: widget.scale || 1, x: `${widget.x}vw`, y: `${widget.y}vh` }}
+              // 🔥 SOLUCIÓN DEFINITIVA DE POSICIONAMIENTO
+              // 1. top-0 left-0: Anclamos el widget al origen 0,0 del contenedor padre.
+              // 2. x/y (vw/vh): Movemos el widget a la posición deseada.
+              // 3. xPercent/yPercent (-50): Centramos el widget sobre esa coordenada.
+              initial={{ opacity: 0, scale: 0.8, x: `${widget.x}vw`, y: `${widget.y}vh`, xPercent: -50, yPercent: -50 }}
+              animate={{ 
+                opacity: 1, 
+                scale: widget.scale || 1, 
+                x: `${widget.x}vw`, 
+                y: `${widget.y}vh`, 
+                xPercent: -50, 
+                yPercent: -50 
+              }}
               exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 100, damping: 20 }}
-              className={cn("absolute transform -translate-x-1/2 -translate-y-1/2", widget.isDragging ? "z-50 cursor-grabbing scale-110" : "z-10 cursor-grab")}
+              transition={{ type: "spring", stiffness: 80, damping: 20 }}
+              className={cn("absolute top-0 left-0", widget.isDragging ? "z-50 cursor-grabbing scale-110" : "z-10 cursor-grab")}
               onMouseDown={(e) => handleWidgetMouseDown(e, key)}
-              style={{ left: 0, top: 0 }} // Reset default positioning, handled by motion
             >
               <div className={cn("transition-all duration-300", hoveredWidget === key ? "scale-105 brightness-110" : "")} style={hoveredWidget === key ? { boxShadow: activeTheme.glow } : {}}>
                 {Component && <Component data={{...widget, time, temp: weather.temp, condition: weather.condition}} theme={activeTheme} formatTime={formatTime} formatDate={formatDate} />}
@@ -345,7 +349,7 @@ const SmartMirror = () => {
         })}
       </AnimatePresence>
 
-      {/* MODO FOCUS (POMODORO) */}
+      {/* MODO FOCUS */}
       <AnimatePresence>
         {focusMode && (
           <motion.div 
@@ -377,7 +381,7 @@ const SmartMirror = () => {
         )}
       </AnimatePresence>
 
-      {/* PANEL DE CONFIGURACIÓN */}
+      {/* PANEL AJUSTES */}
       <AnimatePresence>
         {showSettings && (
           <motion.div 
@@ -392,7 +396,6 @@ const SmartMirror = () => {
             </div>
 
             <div className="space-y-10">
-              {/* SELECCIÓN DE TEMAS */}
               <section>
                 <h3 className="text-xs text-gray-500 uppercase tracking-widest mb-4">PERFIL VISUAL</h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -414,9 +417,8 @@ const SmartMirror = () => {
                 </div>
               </section>
 
-              {/* WIDGETS TOGGLES */}
               <section>
-                <h3 className="text-xs text-gray-500 uppercase tracking-widest mb-4">MÓDULOS ACTIVOS</h3>
+                <h3 className="text-xs text-gray-500 uppercase tracking-widest mb-4">MÓDULOS</h3>
                 <div className="space-y-2">
                   {Object.values(WIDGET_REGISTRY).map(w => (
                     <div 
@@ -441,7 +443,7 @@ const SmartMirror = () => {
         )}
       </AnimatePresence>
 
-      {/* BOTÓN DE AJUSTES FLOTANTE */}
+      {/* BOTÓN SETTINGS */}
       <motion.button 
         whileHover={{ rotate: 90 }}
         onClick={() => setShowSettings(true)} 
@@ -450,7 +452,7 @@ const SmartMirror = () => {
         <Settings size={24} />
       </motion.button>
 
-      {/* INDICADORES DE ESTADO (IA) */}
+      {/* STATUS BAR */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 px-6 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 text-[10px] tracking-[0.2em] text-white/30 uppercase">
         <span className={faceDetected ? "text-green-400" : ""}>VISION</span>
         <span>•</span>
