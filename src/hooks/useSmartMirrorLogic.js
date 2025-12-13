@@ -6,25 +6,33 @@ import { WIDGET_REGISTRY, PRESETS, DEFAULT_CONFIG } from '../config/constants';
 // SONIDO
 const playTechSound = (type) => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
     const now = ctx.currentTime;
-    if (type === 'complete') { osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); gain.gain.setValueAtTime(0.1, now); osc.start(now); osc.stop(now + 0.8); } 
-    else if (type === 'notification') { osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3); } 
-    else if (type === 'swipe') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3); }
+    
+    if (type === 'complete') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); gain.gain.setValueAtTime(0.1, now); osc.start(now); osc.stop(now + 0.8);
+    } else if (type === 'notification') {
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'swipe') {
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3);
+    }
   } catch (e) {}
 };
 
 const useSmartMirrorLogic = () => {
+  // 1. ESTADOS
   const [time, setTime] = useState(new Date());
   const [weather] = useState({ temp: 24, condition: 'Cielo Despejado' });
   const [cameraActive, setCameraActive] = useState(false);
   const [isDayTime, setIsDayTime] = useState(true);
   const [viewMode, setViewMode] = useState('dashboard');
-  const [isStandby, setIsStandby] = useState(false); 
+  const [isStandby, setIsStandby] = useState(false); // <--- AQUÍ SE DECLARA isStandby
   const [bootPhase, setBootPhase] = useState('active');
   const [handDetected, setHandDetected] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -33,12 +41,15 @@ const useSmartMirrorLogic = () => {
   const [sessionComplete, setSessionComplete] = useState(false);
   const [interactionProgress, setInteractionProgress] = useState(0); 
   const [interactionType, setInteractionType] = useState(null); 
-  const [socket, setSocket] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [handPosition, setHandPosition] = useState({ x: 0, y: 0 });
   const [isGrabbing, setIsGrabbing] = useState(false);
   const [hoveredWidget, setHoveredWidget] = useState(null);
 
+  // SOCKET (Declarado aquí para usarlo si es necesario, aunque se inicializa en useEffect)
+  const [socket, setSocket] = useState(null);
+
+  // CONFIGURACIÓN
   const [widgets, setWidgets] = useState(() => {
     try { const saved = localStorage.getItem('jarvis_mirror_config_v2'); if (saved) return { ...PRESETS.default, ...JSON.parse(saved) }; } catch (e) { }
     return PRESETS.default;
@@ -59,7 +70,15 @@ const useSmartMirrorLogic = () => {
       }
   };
 
-  useJarvisVoice({ setWidgets, setIsStandby, setBootPhase, playTechSound, searchWidgetDefault: WIDGET_REGISTRY.search });
+  // 2. LLAMADA A JARVIS VOICE (Corregida)
+  useJarvisVoice({ 
+      setWidgets, 
+      setIsStandby, 
+      setBootPhase, 
+      playTechSound, 
+      searchWidgetDefault: WIDGET_REGISTRY.search,
+      isStandby: isStandby // <--- ¡AQUÍ ESTÁ! Asegúrate de que haya una coma en la línea anterior
+  });
 
   // REFS
   const lastActivityRef = useRef(Date.now());
@@ -80,6 +99,7 @@ const useSmartMirrorLogic = () => {
   const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
 
+  // 3. EFECTOS Y SINCRONIZACIÓN
   useEffect(() => { widgetsRef.current = widgets; }, [widgets]);
   useEffect(() => { isStandbyRef.current = isStandby; }, [isStandby]);
   useEffect(() => { focusModeRef.current = focusMode; }, [focusMode]);
@@ -99,10 +119,12 @@ const useSmartMirrorLogic = () => {
     newSocket.on('update-calendar', (realEvents) => setWidgets(prev => ({ ...prev, calendar: { ...(prev.calendar || WIDGET_REGISTRY.calendar), visible: true, events: realEvents } })));
     newSocket.on('update-mail', (realEmails) => setWidgets(prev => ({ ...prev, mail: { ...(prev.mail || WIDGET_REGISTRY.mail), visible: true, emails: realEmails } })));
     newSocket.on('update-music', (track) => setWidgets(prev => ({ ...prev, music: { ...(prev.music || WIDGET_REGISTRY.music), visible: true, track: track } })));
+    setSocket(newSocket);
     return () => newSocket.close();
   }, []);
 
   const applyPreset = (presetName) => { const preset = PRESETS[presetName] || PRESETS.default; setWidgets(prev => { const newWidgets = { ...prev }; Object.keys(preset).forEach(key => { if (newWidgets[key]) newWidgets[key] = { ...newWidgets[key], ...preset[key], isDragging: false }; }); return newWidgets; }); };
+  
   useEffect(() => { if (!isGrabbing && bootPhase === 'active') { const clean = {}; Object.keys(widgets).forEach(k => clean[k] = { ...widgets[k], isDragging: false }); localStorage.setItem('jarvis_mirror_config_v2', JSON.stringify(clean)); } }, [widgets, isGrabbing]);
   useEffect(() => { localStorage.setItem('jarvis_mirror_settings_v2', JSON.stringify(config)); }, [config]);
   useEffect(() => { const t = setInterval(() => { const n = new Date(); setTime(n); setIsDayTime(n.getHours() >= config.dayStart && n.getHours() < config.nightStart); }, 1000); return () => clearInterval(t); }, [config]);

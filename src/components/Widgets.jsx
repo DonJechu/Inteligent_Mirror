@@ -61,12 +61,36 @@ export const WIDGET_COMPONENTS = {
     </WidgetContainer>
   ),
 
+
   music: ({ theme, data }) => (
-    <WidgetContainer theme={theme} className="flex items-center gap-4 w-80">
-      <div className={`w-14 h-14 rounded-full flex items-center justify-center bg-white/10 ${theme.textAccent}`}><Disc className="w-8 h-8 animate-spin-slow" /></div>
+    <WidgetContainer theme={theme} className="flex items-center gap-4 w-80 group">
+      {/* Disco giratorio con brillo dinámico */}
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center bg-white/5 relative overflow-hidden ${theme.borderColor} border`}>
+         <Disc className={`w-8 h-8 ${theme.textAccent} animate-[spin_4s_linear_infinite]`} />
+         {/* Reflejo brillante */}
+         <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/20 rounded-full" />
+      </div>
+      
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-bold truncate ${theme.textAccent}`}>{data.track?.title || "Sin música"}</div>
-        <div className={`text-xs opacity-60 truncate ${theme.textMain}`}>{data.track?.artist || "Esperando..."}</div>
+        <div className={`text-sm font-bold truncate ${theme.textAccent} group-hover:scale-105 transition-transform origin-left`}>
+            {data.track?.title || "Sin reproducción"}
+        </div>
+        <div className={`text-xs opacity-60 truncate ${theme.textMain}`}>
+            {data.track?.artist || "Sistema en espera..."}
+        </div>
+        
+        {/* Visualizador de audio falso (Barras animadas) */}
+        <div className="flex gap-1 mt-2 h-3 items-end">
+            {[1,2,3,4,5].map(i => (
+                <div key={i} 
+                     className={`w-1 rounded-full ${theme.bgActive} animate-pulse`} 
+                     style={{
+                         height: `${Math.random() * 100}%`, 
+                         animationDuration: `${0.5 + Math.random()}s`
+                     }} 
+                />
+            ))}
+        </div>
       </div>
     </WidgetContainer>
   ),

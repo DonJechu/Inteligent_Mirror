@@ -1,58 +1,65 @@
 export const THEMES = {
-  zen: {
-    name: 'Zen',
-    font: 'font-serif',
-    bg: 'bg-[#1c1917]',
-    textMain: 'text-stone-200',
-    textAccent: 'text-amber-200',
-    border: 'border-amber-900/30',
-    borderColor: 'border-amber-900',
-    panel: 'bg-[#292524]/60 backdrop-blur-sm border border-amber-900/20 shadow-lg',
-    cursor: '#fbbf24',
-    bgActive: 'bg-amber-900/20',
-    glow: 'shadow-[0_0_30px_rgba(251,191,36,0.1)]',
-    shape: 'rounded-tl-[2rem] rounded-br-[2rem]'
-  },
   stark: {
     name: 'J.A.R.V.I.S.',
     font: 'font-mono',
     bg: 'bg-black',
-    textMain: 'text-white',
+    // Usamos colores cyan más eléctricos y gradientes sutiles
+    textMain: 'text-cyan-100',
     textAccent: 'text-cyan-400',
-    border: 'border-cyan-500/50',
+    border: 'border-cyan-500/40',
     borderColor: 'border-cyan-500',
-    panel: 'bg-cyan-950/20 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]',
-    cursor: '#06b6d4',
-    bgActive: 'bg-cyan-900/30',
-    glow: 'shadow-[0_0_20px_rgba(34,211,238,0.2)]',
-    shape: 'rounded-sm'
+    // Panel con gradiente sutil para dar volumen
+    panel: 'bg-gradient-to-br from-cyan-950/40 to-black/60 border border-cyan-500/30 backdrop-blur-md',
+    cursor: '#22d3ee', // Cyan brillante
+    bgActive: 'bg-cyan-500/20',
+    // Glow más intenso para parecer holograma
+    glow: 'shadow-[0_0_30px_rgba(34,211,238,0.3),_inset_0_0_10px_rgba(34,211,238,0.1)]',
+    shape: 'rounded-sm border-t-2', // Borde superior más grueso estilo HUD
+    animation: 'animate-pulse-slow'
   },
   minimal: {
-    name: 'Clean',
+    name: 'Braun',
     font: 'font-sans tracking-tight',
-    bg: 'bg-zinc-950',
-    textMain: 'text-zinc-100',
+    bg: 'bg-neutral-950',
+    textMain: 'text-neutral-200',
     textAccent: 'text-white',
-    border: 'border-white/10',
+    border: 'border-white/5',
     borderColor: 'border-white',
+    // Estilo "Frosted Glass" puro de Apple
     panel: 'bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl',
     cursor: '#ffffff',
-    bgActive: 'bg-white/10',
+    bgActive: 'bg-white/15',
     glow: 'shadow-none',
     shape: 'rounded-[2rem]'
   },
   cyber: {
-    name: 'Cyberpunk',
+    name: 'Neon City',
     font: 'font-mono uppercase italic',
     bg: 'bg-slate-900',
-    textMain: 'text-pink-50',
-    textAccent: 'text-pink-500',
-    border: 'border-pink-500',
-    borderColor: 'border-pink-500',
-    panel: 'bg-slate-900/80 border-l-4 border-pink-500 shadow-[5px_5px_0px_rgba(0,0,0,0.5)]',
-    cursor: '#ec4899',
-    bgActive: 'bg-pink-900/40',
-    glow: 'drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]',
-    shape: 'rounded-none skew-x-[-5deg]'
+    textMain: 'text-fuchsia-100',
+    textAccent: 'text-fuchsia-500',
+    border: 'border-fuchsia-500',
+    borderColor: 'border-fuchsia-500',
+    // Estilo agresivo con bordes cortados
+    panel: 'bg-slate-900/90 border-l-4 border-r-4 border-fuchsia-500 clip-path-polygon', 
+    cursor: '#d946ef',
+    bgActive: 'bg-fuchsia-500/30',
+    glow: 'drop-shadow-[0_0_15px_rgba(217,70,239,0.6)]',
+    shape: 'rounded-none'
+  },
+  zen: {
+    name: 'Oasis',
+    font: 'font-serif',
+    bg: 'bg-[#1c1917]',
+    textMain: 'text-stone-300',
+    textAccent: 'text-orange-200',
+    border: 'border-orange-900/20',
+    borderColor: 'border-orange-900',
+    // Textura orgánica y cálida
+    panel: 'bg-[#292524]/80 backdrop-blur-sm border border-orange-500/10 shadow-lg',
+    cursor: '#fdba74',
+    bgActive: 'bg-orange-500/10',
+    glow: 'shadow-[0_4px_20px_rgba(0,0,0,0.5)]', // Sombra suave en vez de brillo
+    shape: 'rounded-3xl'
   }
 };
