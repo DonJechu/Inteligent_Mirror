@@ -9,7 +9,6 @@
 ## 📸 Screenshots
 
 ![Dashboard Preview](https://via.placeholder.com/800x450?text=MirrorLink+Dashboard+Preview)
-*(Replace this link with a real screenshot of your interface)*
 
 ---
 
