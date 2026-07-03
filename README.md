@@ -1,56 +1,80 @@
-# 🔮 MirrorLink
+# 🔮 MirrorLink — Espejo Inteligente
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Status](https://img.shields.io/badge/status-active-success.svg)
+![Status](https://img.shields.io/badge/status-active-success.svg) ![Stack](https://img.shields.io/badge/React_19-Vite-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> A futuristic Smart Mirror interface controlled by computer vision gestures and synchronized securely via a mobile companion app. Inspired by J.A.R.V.I.S. technology.
-
----
-
-## 📸 Screenshots
-
-![Dashboard Preview](https://via.placeholder.com/800x450?text=MirrorLink+Dashboard+Preview)
-*(Replace this link with a real screenshot of your interface)*
+> Interfaz de espejo inteligente estilo J.A.R.V.I.S. controlada por **gestos con la mano** (visión por computadora con la webcam) y **voz**, con un puente en Node para notificaciones, agenda y música desde un teléfono en la misma red.
 
 ---
 
-## ✨ Features
+## ✨ Características
 
-* **🖐️ Touchless Gesture Control**: Navigate the interface using hand gestures powered by AI (MediaPipe). No touch required.
-* **📅 Immersive Agenda**: Pinch & drag to scroll through your daily events.
-* **📱 Mobile Sync (Companion App)**: Securely bridge your phone's Calendar, Notifications, and Mail to the mirror via local WebSocket without exposing credentials to the mirror itself.
-* **⚡ High Performance**: Built with **React + Vite** for ultra-fast 60fps rendering.
-* **🧘 Circadian Modes**: Automatically switches between **Day Mode** (High Contrast/Cyan) and **Night Mode** (Blue Light Filter/Amber).
-* **🎯 Focus Mode**: Distraction-free Pomodoro timer activated by gestures.
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend (Mirror)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E) ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) ![MediaPipe](https://img.shields.io/badge/MediaPipe-0099CC?style=for-the-badge&logo=google&logoColor=white)
-
-### Backend (Bridge)
-![NodeJS](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white) ![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge) ![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)
-
-### Mobile (Remote)
-![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)
+- **🖐️ Control gestual sin contacto** — cursor y "pinza" (índice + pulgar) con MediaPipe Hands sobre la cámara de la laptop. Sin teclado ni ratón.
+- **🎙️ Asistente de voz "Jarvis"** — palabra de activación + búsqueda en la web resumida por IA (SerpAPI + DeepSeek) y respuesta hablada.
+- **📅 Agenda inmersiva** — vista a pantalla completa; pinza y arrastra para hacer scroll.
+- **🎯 Modo Focus (Pomodoro)** — temporizador a pantalla completa activado por gesto.
+- **🧘 Temas** — JARVIS, Braun (minimal), Neon City (cyber) y Oasis (zen).
+- **📱 Companion** — página web (`server/controller.html`) que empuja notificaciones, calendario, correo y música al espejo por WebSocket, sin exponer credenciales al espejo.
 
 ---
 
-## 🚀 Installation & Setup
+## 🛠️ Stack
 
-This project consists of 3 parts running simultaneously: **Server**, **Mirror Client**, and **Mobile App**.
+- **Espejo (frontend):** React 19 · Vite · TailwindCSS · Framer Motion · MediaPipe (Hands + FaceMesh, cargado por CDN)
+- **Puente (backend):** Node · Express · Socket.io · SerpAPI · DeepSeek
 
-### Prerequisites
-* Node.js (v18 or higher)
-* Expo Go app installed on your phone.
+---
 
-### 1. Clone the Repository
+## 🚀 Instalación
+
+### Requisitos
+- Node.js 18 o superior.
+- Una webcam (basta la de la laptop).
+- Navegador con permiso de cámara y micrófono (Chrome/Edge recomendado por el reconocimiento de voz).
+
+### 1. Clonar e instalar
 ```bash
-<<<<<<< HEAD
-git clone [https://github.com/your-username/mirrorlink.git](https://github.com/your-username/mirrorlink.git)
-=======
-git clone [https://github.com/DonJechu/Inteligent_Mirror.git](https://github.com/DonJechu/Inteligent_Mirror.git)
->>>>>>> 5d63f1d34f7796bd41854894eaa22358f648d10b
-cd mirrorlink
+git clone https://github.com/DonJechu/Inteligent_Mirror.git
+cd Inteligent_Mirror
 npm install
+```
+
+### 2. Configurar claves (opcional, solo para la búsqueda por voz)
+Copia `.env.example` a `.env` y rellena tus claves:
+```bash
+cp .env.example .env
+```
+```
+SERPAPI_KEY=tu_clave_serpapi
+DEEPSEEK_API_KEY=tu_clave_deepseek
+```
+> Sin claves, el espejo funciona igual (reloj, gestos, widgets); solo se desactiva la búsqueda por voz.
+
+### 3. Arrancar
+```bash
+npm start          # levanta el puente (:3001) y el espejo (Vite) a la vez
+```
+Abre el espejo en el navegador (Vite muestra la URL, normalmente `http://localhost:5173`) y acepta los permisos de cámara/micrófono.
+
+El **companion** está en `http://localhost:3001` (o `http://<IP-de-tu-PC>:3001` desde el teléfono en la misma red).
+
+### Scripts
+| Comando | Qué hace |
+|---|---|
+| `npm start` | Puente + espejo juntos |
+| `npm run dev` | Solo el espejo (Vite) |
+| `npm run server` | Solo el puente (Node) |
+| `npm run build` | Build de producción |
+| `npm run lint` | Linter |
+
+---
+
+## 🎮 Uso
+
+Consulta **[MANUAL.md](MANUAL.md)** para el detalle de gestos (pinza, scroll, Focus) y la vinculación del teléfono.
+
+Comandos de voz: di **"Jarvis…"** seguido de, por ejemplo, *"busca un café cerca"*, *"qué es…"*, *"quién es…"* o *"apágate"*.
+
+---
+
+## 📄 Licencia
+MIT.

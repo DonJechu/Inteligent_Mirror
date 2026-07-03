@@ -22,7 +22,7 @@ const playTechSound = (type) => {
     } else if (type === 'swipe') {
       osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + 0.3);
     }
-  } catch (e) {}
+  } catch {}
 };
 
 const useSmartMirrorLogic = () => {
@@ -46,17 +46,14 @@ const useSmartMirrorLogic = () => {
   const [isGrabbing, setIsGrabbing] = useState(false);
   const [hoveredWidget, setHoveredWidget] = useState(null);
 
-  // SOCKET (Declarado aquí para usarlo si es necesario, aunque se inicializa en useEffect)
-  const [socket, setSocket] = useState(null);
-
   // CONFIGURACIÓN
   const [widgets, setWidgets] = useState(() => {
-    try { const saved = localStorage.getItem('jarvis_mirror_config_v2'); if (saved) return { ...PRESETS.default, ...JSON.parse(saved) }; } catch (e) { }
+    try { const saved = localStorage.getItem('jarvis_mirror_config_v2'); if (saved) return { ...PRESETS.default, ...JSON.parse(saved) }; } catch { }
     return PRESETS.default;
   });
 
   const [config, setConfig] = useState(() => {
-    try { const saved = localStorage.getItem('jarvis_mirror_settings_v2'); if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) }; } catch (e) { }
+    try { const saved = localStorage.getItem('jarvis_mirror_settings_v2'); if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) }; } catch { }
     return DEFAULT_CONFIG;
   });
 
@@ -108,6 +105,8 @@ const useSmartMirrorLogic = () => {
   // SOCKETS
   useEffect(() => {
     const newSocket = io('http://localhost:3001');
+    // El servidor emite a la sala 'mirror-room'; sin identificarnos nunca llegarían los datos del controlador.
+    newSocket.on('connect', () => newSocket.emit('identify', 'mirror'));
     newSocket.on('new-notification', (notif) => {
       playTechSound('notification'); registerActivity(); 
       setWidgets(prev => {
@@ -119,7 +118,6 @@ const useSmartMirrorLogic = () => {
     newSocket.on('update-calendar', (realEvents) => setWidgets(prev => ({ ...prev, calendar: { ...(prev.calendar || WIDGET_REGISTRY.calendar), visible: true, events: realEvents } })));
     newSocket.on('update-mail', (realEmails) => setWidgets(prev => ({ ...prev, mail: { ...(prev.mail || WIDGET_REGISTRY.mail), visible: true, emails: realEmails } })));
     newSocket.on('update-music', (track) => setWidgets(prev => ({ ...prev, music: { ...(prev.music || WIDGET_REGISTRY.music), visible: true, track: track } })));
-    setSocket(newSocket);
     return () => newSocket.close();
   }, []);
 
@@ -196,14 +194,14 @@ const useSmartMirrorLogic = () => {
   const checkWidgetHover = (x, y) => { let found = null; for (let [name, widget] of Object.entries(widgetsRef.current)) { if (!widget.visible) continue; if (Math.abs(widget.x - x) < 18 && Math.abs(widget.y - y) < 18) { found = name; break; } } setHoveredWidget(found); };
   const toggleWidget = (id) => setWidgets(prev => ({ ...prev, [id]: { ...prev[id], visible: !prev[id]?.visible } }));
   const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
-  const handleWidgetMouseDown = (e, widgetName) => {}; 
+  const handleWidgetMouseDown = () => {}; // ponytail: sin ratón, el control es por gestos; se mantiene para el onMouseDown de los widgets
 
   useEffect(() => {
     if (cameraRef.current) return;
     const initCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(e=>{}); setCameraActive(true); }
+        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); setCameraActive(true); }
         if (typeof window.Hands === 'undefined') return;
         handsRef.current = new window.Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
         handsRef.current.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
@@ -213,11 +211,11 @@ const useSmartMirrorLogic = () => {
         faceMeshRef.current.onResults(onFaceResults);
         cameraRef.current = new window.Camera(videoRef.current, { onFrame: async () => { if (videoRef.current?.readyState === 4) { frameCountRef.current++; if (handsRef.current) await handsRef.current.send({ image: videoRef.current }); if (frameCountRef.current % (isStandbyRef.current ? 5 : 60) === 0 && faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current }); } }, width: 320, height: 240 });
         await cameraRef.current.start();
-      } catch (err) {}
+      } catch { /* cámara no disponible o permiso denegado: el espejo sigue mostrando la hora */ }
     };
     const loadMediaPipe = () => { if (window.Hands) { initCamera(); return; } const scripts = ['https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', 'https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js', 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js', 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js', 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js']; let loaded = 0; const loadNext = () => { if (loaded >= scripts.length) { setTimeout(initCamera, 500); return; } const script = document.createElement('script'); script.src = scripts[loaded]; script.crossOrigin = "anonymous"; script.async = false; script.onload = () => { loaded++; loadNext(); }; document.head.appendChild(script); }; loadNext(); };
     loadMediaPipe();
-    return () => { if (cameraRef.current) { try { cameraRef.current.stop(); } catch(e){} cameraRef.current = null; } };
+    return () => { if (cameraRef.current) { try { cameraRef.current.stop(); } catch {} cameraRef.current = null; } };
   }, []);
 
   return { time, weather, cameraActive, handDetected, faceDetected, isStandby, bootPhase, widgets, handPosition, isGrabbing, hoveredWidget, showSettings, setShowSettings, videoRef, handleWidgetMouseDown, toggleWidget, setWidgets, config, updateConfig, isDayTime, applyPreset, focusMode, interactionProgress, interactionType, focusTime, sessionComplete, viewMode, setViewMode, agendaScrollRef, resetToFactory };

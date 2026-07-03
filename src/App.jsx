@@ -13,7 +13,7 @@ const SmartMirror = () => {
     handPosition, isGrabbing, hoveredWidget, showSettings, setShowSettings, videoRef, 
     handleWidgetMouseDown, toggleWidget, config, updateConfig, applyPreset,
     focusMode, interactionProgress, interactionType, focusTime, sessionComplete,
-    viewMode, agendaScrollRef, isDayTime, resetToFactory
+    viewMode, agendaScrollRef, resetToFactory
   } = useSmartMirrorLogic();
 
   // 🔥 SEGURIDAD: Si config.theme falla, usa 'stark' por defecto
